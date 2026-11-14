@@ -66,3 +66,12 @@
 - `followup.list --customer` 过滤修复：改用 `searchFieldCondition.custId_eq`（`subBill` 方式 1007）。
 - 新增跟进同步单元测试；测试总数 54。
 - 联系人/跟进新增均完成真实上游验证；README 验证表、docs/03、docs/10 同步更新。
+
+## [1.0.4] - 2026-11-15
+
+### 修复
+
+- 容量视图修正：`capacity.used` 改为优先取上游按 owner 统计的客户数（缓存 120s，`usedSource=upstream`），
+  不再直接统计本地缓存 customers（之前会显示 200 而非真实 491）。
+- `account.list/get` 自动刷新容量使用量；失败回退本地估算并标记 `usedSource=local_cache`。
+- README 版本、docs/05、docs/10 更新；待补：角色→custLimit 规则同步（limit 目前默认 500）。

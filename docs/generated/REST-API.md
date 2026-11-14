@@ -1,6 +1,6 @@
 # REST API 参考
 
-> 版本 1.0.3｜OpenAPI: `spec/openapi.json`｜服务地址默认 `http://127.0.0.1:17890`。
+> 版本 1.0.4｜OpenAPI: `spec/openapi.json`｜服务地址默认 `http://127.0.0.1:17890`。
 
 鉴权：`Authorization: Bearer <apiToken>`（`/v1/health`、`/v1/docs`、`/v1/openapi.json`、`/v1/spec/*` 免鉴权）。
 

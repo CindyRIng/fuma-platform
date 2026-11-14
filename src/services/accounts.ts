@@ -24,8 +24,37 @@ export interface CapacityView {
   limit: number;
   used: number;
   remaining: number;
+  /** 容量上限来源：default=默认 500；config=创建时指定 */
   source: string;
+  /** 使用量来源：upstream=上游实时统计；local_cache=本地缓存估算 */
+  usedSource: 'upstream' | 'local_cache';
   lastSyncedAt: string | null;
+}
+
+const CAPACITY_USAGE_TTL_MS = 120_000;
+function capacityUsageKey(accountId: string): string {
+  return `capacity:usage:${accountId}`;
+}
+
+/** 从上游按 owner 统计该账号名下客户数，作为容量使用量（缓存 120s；失败保留旧缓存）。 */
+export async function refreshCapacityUsage(rt: Runtime, accountId: string): Promise<void> {
+  const acc = getAccount(rt, accountId);
+  const loaded = rt.sessions.loadTokens(accountId);
+  if (!loaded) return;
+  const ctId = acc.ownerCtId ? Number(acc.ownerCtId) : loaded.ctId;
+  try {
+    const data = await rt.upstream.call<{ totalNum?: number }>({ accountId, tokens: loaded.tokens, logger: rt.logger }, {
+      method: 'POST', path: '/bill/bill/get_page_list',
+      body: {
+        recoveryFlag: false,
+        moduleCode: 'NewBF001',
+        organizationStructure: { type: 3, ownerCtIdList: ctId ? [ctId] : [] },
+        page: { from: 0, size: 1 }
+      },
+      timeoutMs: 20_000
+    });
+    rt.store.setKv(capacityUsageKey(accountId), { used: Number(data.totalNum ?? 0), fetchedAt: nowIso(), source: 'upstream' });
+  } catch { /* 保留旧缓存/本地估算 */ }
 }
 
 function toAccount(row: Record<string, unknown>): AccountRow {
@@ -127,19 +156,34 @@ export function updateAccount(rt: Runtime, accountId: string, patch: Partial<Cre
 
 export function capacityOf(rt: Runtime, accountId: string): CapacityView {
   const acc = getAccount(rt, accountId);
-  const row = rt.store.get<{ used: number }>(
-    'SELECT COUNT(*) AS used FROM customers WHERE account_id=? AND seas_flag=0',
-    accountId
-  );
-  const used = Number(row?.used ?? 0);
-  const lastSync = rt.store.get<{ v: string }>('SELECT fetched_at AS v FROM capacity_rules ORDER BY fetched_at DESC LIMIT 1');
+  const cached = rt.store.getKv<{ used: number; fetchedAt: string; source: string }>(capacityUsageKey(accountId));
+  const cacheFresh = !!cached && Date.now() - Date.parse(cached.fetchedAt) < CAPACITY_USAGE_TTL_MS;
+  let used: number;
+  let usedSource: 'upstream' | 'local_cache';
+  let lastSyncedAt: string | null;
+  if (cached && (cacheFresh || cached.source === 'upstream')) {
+    // 上游统计优先（即使过期也先用旧值，避免被本地缓存数误导）
+    used = Number(cached.used);
+    usedSource = 'upstream';
+    lastSyncedAt = cached.fetchedAt;
+  } else {
+    const row = rt.store.get<{ used: number }>(
+      'SELECT COUNT(*) AS used FROM customers WHERE account_id=? AND seas_flag=0',
+      accountId
+    );
+    used = Number(row?.used ?? 0);
+    usedSource = 'local_cache';
+    lastSyncedAt = null;
+  }
+  const rules = rt.store.get<{ v: string }>('SELECT fetched_at AS v FROM capacity_rules ORDER BY fetched_at DESC LIMIT 1');
   return {
     accountId,
     limit: acc.capacityLimit,
     used,
     remaining: Math.max(0, acc.capacityLimit - used),
     source: acc.capacitySource,
-    lastSyncedAt: lastSync?.v ?? null
+    usedSource,
+    lastSyncedAt: lastSyncedAt ?? rules?.v ?? null
   };
 }
 

@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { AppError } from '../core/errors.js';
-import { accountView, capacityOf, createAccount, getAccount, listAccounts, updateAccount } from '../services/accounts.js';
+import { accountView, capacityOf, createAccount, getAccount, listAccounts, refreshCapacityUsage, updateAccount } from '../services/accounts.js';
 import { healthView, statusView } from '../services/health.js';
 import { getCustomer, listCustomers } from '../services/customers.js';
 import { listOpenSea } from '../services/open-sea.js';
@@ -63,10 +63,14 @@ export async function dispatch(rt: Runtime, capabilityId: string, input: Record<
           mcp: c.mcp.tool
         }));
     }
-    case 'account.list':
-      return listAccounts(rt).map((a) => ({ ...a, capacity: capacityOf(rt, a.accountId) }));
+    case 'account.list': {
+      const accounts = listAccounts(rt);
+      await Promise.all(accounts.map((a) => refreshCapacityUsage(rt, a.accountId).catch(() => undefined)));
+      return accounts.map((a) => ({ ...a, capacity: capacityOf(rt, a.accountId) }));
+    }
     case 'account.get': {
       const accountId = requireString(input, 'accountId');
+      await refreshCapacityUsage(rt, accountId).catch(() => undefined);
       return accountView(rt, accountId);
     }
     case 'account.create': {
