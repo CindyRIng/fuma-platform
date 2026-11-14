@@ -49,3 +49,13 @@
 - `contact.list` 增加并透传 `fresh` 参数，修复 REST 层丢弃未声明参数导致无法强制刷新。
 - 新增 README 配图（MiniMax-H3-Image 生成）与可视化改版。
 - 记录跟进新增接口契约待补（本地优先实现保留，outbox 标记 dead）。
+
+## [1.0.2] - 2026-11-15
+
+### 新增/修复（真实上游验证）
+
+- 跟进新增打通真实上游：同步改为 `POST /bill/bill/add_one`（浏览器抓包确认的完整 body），
+  平台创建 → outbox → 上游可查（2 条 ZZ_TEST 测试跟进需管理员清理）。
+- `followup.list --customer` 过滤修复：改用 `searchFieldCondition.custId_eq`（`subBill` 方式 1007）。
+- 新增跟进同步单元测试；测试总数 54。
+- 联系人/跟进新增均完成真实上游验证；README 验证表、docs/03、docs/10 同步更新。

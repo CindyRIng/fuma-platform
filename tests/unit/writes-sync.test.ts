@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { createRuntime } from '../../src/services/runtime.js';
 import { createAccount } from '../../src/services/accounts.js';
 import { UpstreamClient } from '../../src/upstream/client.js';
-import { claim, createCustomer, release } from '../../src/services/writes.js';
+import { claim, createCustomer, createFollowup, release } from '../../src/services/writes.js';
 import { processOutboxOnce, reconcileCustomers } from '../../src/services/sync.js';
 import { listEvents } from '../../src/core/events.js';
 
@@ -21,10 +21,10 @@ function setup() {
   return rt;
 }
 
-interface MockOpts { dedupCount?: number; tradeCalls?: { claim: number; putSeas: number; add: number; detail: number }; failClaim?: boolean; upstreamCustomerSeas?: number }
+interface MockOpts { dedupCount?: number; tradeCalls?: { claim: number; putSeas: number; add: number; detail: number; addOne?: number }; failClaim?: boolean; upstreamCustomerSeas?: number }
 
 function mock(rt: ReturnType<typeof setup>, opts: MockOpts = {}) {
-  const calls = opts.tradeCalls ?? { claim: 0, putSeas: 0, add: 0, detail: 0 };
+  const calls: { claim: number; putSeas: number; add: number; detail: number; addOne: number; bodies: Array<{ url: string; body: string }> } = { claim: 0, putSeas: 0, add: 0, detail: 0, addOne: 0, bodies: [], ...(opts.tradeCalls ?? {}) };
   const client = new UpstreamClient(
     { baseUrl: 'https://example.test', pcapiPrefix: '/pcapi', companyId: 10264, timeoutMs: 1000, userAgent: 't', language: 'zh-CN' },
     async (url, init) => {
@@ -42,6 +42,7 @@ function mock(rt: ReturnType<typeof setup>, opts: MockOpts = {}) {
       }
       if (u.includes('doBatchPutSeas')) { calls.putSeas++; return new Response(JSON.stringify({ code: '0', data: '' }), { status: 200 }); }
       if (u.includes('addSingleCustomer')) { calls.add++; return new Response(JSON.stringify({ code: '0', data: 'NEW_ID_1' }), { status: 200 }); }
+      if (u.includes('bill/bill/add_one')) { calls.addOne++; calls.bodies.push({ url: u, body: String(init?.body ?? '') }); return new Response(JSON.stringify({ code: '0', data: 'FOLLOW_1' }), { status: 200 }); }
       if (u.includes('get_page_list')) return new Response(JSON.stringify({ code: '0', data: { totalNum: 1, list: [{ key_id: 'C1', custName: 'ZZTESTCO', seasFlag: opts.upstreamCustomerSeas ?? 1, ownerCtId: 13148056 }] } }), { status: 200 });
       return new Response(JSON.stringify({ code: '0', data: {} }), { status: 200 });
     }
@@ -103,6 +104,24 @@ describe('claims / local-first / sync', () => {
     const row = rt.store.get<{ sync_state: string; upstream_id: string | null }>('SELECT * FROM customers WHERE customer_id=?', r.customerId);
     expect(row?.sync_state).toBe('synced');
     expect(row?.upstream_id).toBe('NEW_ID_1');
+    rt.close();
+  });
+
+  it('跟进新增：本地优先 → bill/add_one 同步成功', async () => {
+    const rt = setup();
+    const calls = mock(rt);
+    const r = await createFollowup(rt, { accountId: 'acct_01', customerId: 'C1', content: 'ZZ_TEST followup content' });
+    expect(r.syncState).toBe('pending');
+    const run = await processOutboxOnce(rt);
+    expect(run.succeeded).toBe(1);
+    expect(calls.addOne).toBe(1);
+    const addOne = calls.bodies.find((b) => b.url.includes('bill/bill/add_one'));
+    expect(addOne).toBeTruthy();
+    const parsed = JSON.parse(addOne!.body) as { moduleCode: string; bill: Record<string, Array<Record<string, unknown>>> };
+    expect(parsed.moduleCode).toBe('NewBF004');
+    expect(parsed.bill['1'][0].trackContent).toBe('ZZ_TEST followup content');
+    const row = rt.store.get<{ sync_state: string }>('SELECT * FROM followups WHERE followup_id=?', r.followupId);
+    expect(row?.sync_state).toBe('synced');
     rt.close();
   });
 

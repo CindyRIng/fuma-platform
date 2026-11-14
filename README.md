@@ -12,8 +12,8 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A522.5-brightgreen">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.1-blue">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-53%20passed-success">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.2-blue">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-54%20passed-success">
   <img alt="Upstream" src="https://img.shields.io/badge/upstream-fumamx.com-0aa2c0">
 </p>
 
@@ -134,10 +134,10 @@ fuma mcp    # MCP stdio，供 Claude/其他 Agent 直接调用
 | 海关按公司查询 | ✅ | tradeList ≈19,514,697；冷查 1.3s → 缓存命中 **1ms** |
 | 客户建档/编辑 | ✅ | ZZ_TEST 测试客户创建、编辑备注成功 |
 | **联系人新增** | ✅ | 平台 REST → outbox → `edit_customer(master.contacts)` → 上游可见（contact.list fresh=2） |
-| 跟进新增 | ⚠️ 待补 | `bill/sub/add_sub` 参数契约未确认（需再抓一次浏览器请求）；本地事实 + 同步任务已实现 |
+| **跟进新增** | ✅ | 浏览器抓包确认 `bill/bill/add_one` → 平台 outbox 同步成功，上游可查（2 条 ZZ_TEST 测试跟进待管理员清理） |
 | outbox/事件/对账 | ✅ | 领取 outbox 同步成功；reconcile 收敛上游事实并记录 diff |
 
-> 测试数据均以 `ZZ_TEST_*` 命名并备注清理说明；平台账号无客户删除权限（上游 1114），需管理员协助清理。
+> 测试数据均以 `ZZ_TEST_*` 命名并备注清理说明；平台账号无客户删除权限（上游 1114），2 条测试跟进删除接口未生效，均需管理员协助清理。
 
 ## 性能
 
@@ -177,7 +177,6 @@ npm run bench       # 50 账号 mock 压测
 ## 状态与已知限制
 
 - **v1.0.1**：P2–P6 完成；systemd 部署运行中；GitHub public（MIT）。
-- ⚠️ **跟进新增**：`followup.create` 已本地优先 + 任务化同步，但上游写接口参数需再抓一次浏览器请求补齐（不影响读取）。
 - ⚠️ **删除客户**：当前验证账号无删除权限（上游 1114），平台如实返回错误；需管理员或换有权限账号。
 - ⚠️ **扫码登录**：首次需人工扫码一次；之后心跳保活，24h 令牌到期后按重登策略处理（正在进行 24h 保活观察）。
 - ⚠️ **海关范围**：仅按公司查询；产品/交易分析、贸易监测不在 MVP。

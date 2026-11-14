@@ -47,7 +47,10 @@ export async function listFollowups(rt: Runtime, input: ListFollowupsInput): Pro
     orderBy: { desc: 'desc', realFieldName: 'create_date', tableCode: '1' },
     searchFieldCondition: { trackMode_notin: '7,8,10,200,201' }
   };
-  if (input.customerId) body.subBill = { originModuleCode: 'NewBF001', targetModuleCode: 'NewBF004', keyId: input.customerId };
+  if (input.customerId) {
+    // 实测（2026-11-15）：跟进列表按客户过滤用 custId_eq，subBill 方式会 1007
+    body.searchFieldCondition = { ...(body.searchFieldCondition as Record<string, unknown>), custId_eq: input.customerId };
+  }
   const data = await pool.runRead(account.accountId, (ctx) => rt.upstream.call<ListResponse>({ accountId: ctx.accountId, tokens: ctx.tokens, logger: rt.logger }, {
     method: 'POST', path: '/bill/bill/get_page_list', body
   }));

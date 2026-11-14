@@ -130,11 +130,68 @@ async function executeAction(rt: Runtime, row: OutboxRow): Promise<{ upstreamId?
         return { upstreamId };
       }
       case 'followup.add': {
+        // 实测（2026-11-15）：跟进新增 = POST /bill/bill/add_one，body {bill:{ "1":[...] }, moduleCode:"NewBF004", custTrackBusinessRequest:{scheduleIdList:[]}}
         const data = payload.data as Record<string, unknown>;
-        await call('/bill/sub/add_sub', {
+        const ownerInfo = await ensureOwnerInfo(rt, row.account_id);
+        const upstreamId = String(payload.upstreamId ?? payload.customerId ?? row.entity_id);
+        // 取客户名与联系人（可选）
+        let master: Record<string, unknown> = {};
+        try {
+          const detail = await rt.upstream.call<Array<Record<string, unknown>>>(ctx.tokens ? { accountId: ctx.accountId, tokens: ctx.tokens, logger: rt.logger } : { accountId: ctx.accountId, tokens: null }, {
+            method: 'POST', path: '/bill/bill/get_detail_info', body: { masterKeyId: upstreamId, moduleCode: 'NewBF001', structId: 1, desensitizeFlag: true }
+          });
+          master = (Array.isArray(detail) ? detail[0] : undefined) ?? {};
+        } catch {
+          master = {};
+        }
+        const contacts = (Array.isArray(master.contacts) ? master.contacts : []) as Array<Record<string, unknown>>;
+        const contact = contacts[0] ?? {};
+        const modeRaw = String(data.trackMode ?? '');
+        const modeCode = /mail|邮件/i.test(modeRaw) ? 2 : /wechat|微信/i.test(modeRaw) ? 3 : /visit|拜访/i.test(modeRaw) ? 4 : 1;
+        const followedAt = data.trackDate ? String(data.trackDate) : '';
+        const toBillDate = (v: string): string => {
+          const d = new Date(v);
+          if (Number.isNaN(d.getTime())) return '';
+          const pad = (n: number) => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        };
+        const trackDate = toBillDate(followedAt) || toBillDate(new Date().toISOString());
+        const nextTrackDate = data.nextTrackDate ? toBillDate(String(data.nextTrackDate)) : '';
+        await call('/bill/bill/add_one', {
+          bill: {
+            '1': [{
+              custId: upstreamId,
+              contId: contact.key_id ?? '',
+              trackStage: '',
+              trackContent: String(data.trackContent ?? ''),
+              nextTrackDate,
+              nextTrackDesc: '',
+              ownerCtId: ownerInfo.ctId ?? null,
+              ownerDeptKey: ownerInfo.deptKey ?? '',
+              trackMode: modeCode,
+              trackDate,
+              imagesId: '',
+              attachmentFile: '',
+              customdate1: '',
+              customstr2: '',
+              customint2: '',
+              customstr1: '',
+              custOwner: ownerInfo.ctId ?? null,
+              billCode: '',
+              custName: String(master.custName ?? ''),
+              sourceCode: '',
+              contName: String(contact.contName ?? ''),
+              locationImages: '',
+              locationLandmarks: '',
+              locationAddress: '',
+              sourceModule: '',
+              sourceId: '',
+              sourceTitle: '',
+              createType: '2'
+            }]
+          },
           moduleCode: 'NewBF004',
-          masterKeyId: String(payload.upstreamId ?? payload.customerId ?? row.entity_id),
-          data: { ...data, custId: String(payload.upstreamId ?? payload.customerId ?? row.entity_id) }
+          custTrackBusinessRequest: { scheduleIdList: [] }
         });
         return { upstreamId: null };
       }
