@@ -8,7 +8,7 @@
     "node": ">=22.5.0"
   },
   "bin": {
-    "fuma": "./dist/main.js"
+    "fuma": "./bin/fuma"
   },
   "scripts": {
     "dev": "node --experimental-sqlite --import tsx src/main.ts",
@@ -47,10 +47,13 @@
   "license": "MIT",
   "files": [
     "dist",
+    "bin",
     "spec",
     "docs",
     "skills",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md",
+    ".env.example"
   ]
 }
