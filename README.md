@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A522.5-brightgreen">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.8-blue">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.9-blue">
   <img alt="Tests" src="https://img.shields.io/badge/tests-65%20passed-success">
   <img alt="Upstream" src="https://img.shields.io/badge/upstream-fumamx.com-0aa2c0">
 </p>
@@ -109,6 +109,7 @@ fuma customer create --account acct_01 --data '{"custName":"ZZ_TEST_示例","cus
 fuma contact create --account acct_01 --customer <customerId> --data '{"contName":"ZZ_TEST_联系人","mobile":"13800001234"}'
 fuma sync status
 fuma event list --since-seq 0
+fuma service status   # 查看正在运行的 daemon（pid/uptime 才是服务进程）
 ```
 
 REST / MCP：

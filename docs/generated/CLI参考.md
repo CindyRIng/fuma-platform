@@ -1,6 +1,6 @@
 # CLI 参考（fuma）
 
-> 版本 1.0.8｜spec 2026-11-15.1｜由 `npm run docs:gen` 生成，请勿手改。
+> 版本 1.0.9｜spec 2026-11-15.1｜由 `npm run docs:gen` 生成，请勿手改。
 
 全局选项：`--home <dir>`、`--format json|table`、`--quiet`、`--debug`、`--json`（单命令强制 JSON）。
 

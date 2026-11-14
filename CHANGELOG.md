@@ -1,3 +1,11 @@
+## [1.0.9] - 2026-11-15
+
+### 新增
+
+- 新增 `fuma service status|health`：直接查询运行中的 REST daemon（默认读取 config 的地址与 apiToken）。
+- 澄清 `fuma system status` 的 `pid/uptimeSeconds` 为请求处理进程（CLI 为一次性进程），daemon 状态请用 `fuma service status`。
+- 文档：README/快速开始/运维手册/docs/10 更新。
+
 ## [1.0.8] - 2026-11-15
 
 ### 标准化 API 文档

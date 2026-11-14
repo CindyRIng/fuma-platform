@@ -1,6 +1,7 @@
 import { Command } from 'commander';
-import { existsSync, mkdirSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { AppError, toAppError } from './core/errors.js';
 import { capabilitiesByNoun, CAPABILITIES, getCapability, type Capability, type ParamSpec } from './api/capabilities.js';
 import { dispatch } from './api/dispatch.js';
@@ -139,6 +140,36 @@ function addCapabilityCommand(parent: Command, cap: Capability, program: Command
   });
 }
 
+interface ServiceTargetOpts { url?: string; token?: string; timeout?: string }
+
+function serviceTarget(globals: Globals, opts: ServiceTargetOpts): { url: string; token: string; timeoutMs: number } {
+  let url = opts.url;
+  let token = opts.token;
+  if (!url || !token) {
+    const home = globals.home ?? process.env.FUMA_HOME ?? join(homedir(), '.fuma-platform');
+    const cfg = JSON.parse(readFileSync(join(home, 'config.json'), 'utf8')) as { server?: { restHost?: string; restPort?: number; apiToken?: string } };
+    const host = !cfg.server?.restHost || cfg.server.restHost === '0.0.0.0' ? '127.0.0.1' : cfg.server.restHost;
+    url = url ?? `http://${host}:${cfg.server?.restPort ?? 17890}`;
+    token = token ?? cfg.server?.apiToken ?? '';
+  }
+  return { url: url.replace(/\/$/, ''), token, timeoutMs: Math.max(500, Number(opts.timeout ?? 5000)) };
+}
+
+async function fetchDaemon(globals: Globals, opts: ServiceTargetOpts, path: string): Promise<void> {
+  const target = serviceTarget(globals, opts);
+  const res = await fetch(target.url + path, {
+    headers: { authorization: `Bearer ${target.token}` },
+    signal: AbortSignal.timeout(target.timeoutMs)
+  });
+  const text = await res.text();
+  let body: unknown;
+  try { body = JSON.parse(text); } catch { body = { ok: false, data: null, error: { code: 'bad_response', message: text.slice(0, 300) } }; }
+  const env = body as { ok?: boolean; data?: unknown };
+  if (globals.quiet && env.data !== undefined) console.log(JSON.stringify(env.data, null, 2));
+  else console.log(JSON.stringify(body, null, 2));
+  if (!res.ok || env.ok === false) process.exitCode = 2;
+}
+
 function addSpecialCommands(program: Command): void {
   program.command('version')
     .description('显示版本信息')
@@ -167,6 +198,26 @@ function addSpecialCommands(program: Command): void {
       const shutdown = () => { scheduler.stop(); server.close(() => { rt.close(); process.exit(0); }); };
       process.on('SIGINT', shutdown);
       process.on('SIGTERM', shutdown);
+    });
+
+  const service = program.command('service').description('服务端运维：查询正在运行的 REST 服务（daemon）');
+  service.command('status')
+    .description('查询运行中服务状态（等同 REST GET /v1/status；pid/uptime 为 daemon 进程）')
+    .option('--url <url>', '服务地址（默认取 config）')
+    .option('--token <token>', 'REST apiToken（默认取 config）')
+    .option('--timeout <ms>', '超时毫秒', '5000')
+    .action(async (opts: ServiceTargetOpts) => {
+      const globals = program.opts<Globals>();
+      await fetchDaemon(globals, opts, '/v1/status');
+    });
+  service.command('health')
+    .description('查询运行中服务健康（等同 REST GET /v1/health）')
+    .option('--url <url>', '服务地址（默认取 config）')
+    .option('--token <token>', 'REST apiToken（默认取 config）')
+    .option('--timeout <ms>', '超时毫秒', '5000')
+    .action(async (opts: ServiceTargetOpts) => {
+      const globals = program.opts<Globals>();
+      await fetchDaemon(globals, opts, '/v1/health');
     });
 
   program.command('mcp')
