@@ -82,6 +82,7 @@ export class Logger {
     if (this.file) {
       try { appendFileSync(this.file, line + '\n'); } catch { /* ignore */ }
     }
+    if (!this.consoleOutput) return;
     if (level === 'error') console.error(line);
     else console.log(line);
   }

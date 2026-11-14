@@ -147,6 +147,19 @@ describe('claims / local-first / sync', () => {
 });
 
 describe('reconcile', () => {
+  it('ownerCtId 13148056.0 与 13148056 视为相同，不产生伪 diff', async () => {
+    const rt = setup();
+    mock(rt, { upstreamCustomerSeas: 0 });
+    const now = new Date().toISOString();
+    rt.store.run(
+      `INSERT INTO customers(customer_id,account_id,seas_flag,owner_ct_id,sync_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?)`,
+      'C1', 'acct_01', 0, '13148056.0', 'synced', now, now
+    );
+    const report = await reconcileCustomers(rt, 'acct_01');
+    expect(report.diffs).toBe(0);
+    rt.close();
+  });
+
   it('上游事实变化 → 收敛上游 + sync.conflict 事件 + diff 记录', async () => {
     const rt = setup();
     mock(rt, { upstreamCustomerSeas: 1 });

@@ -1,3 +1,15 @@
+## [1.0.6] - 2026-11-15
+
+### 修复（全面自检）
+
+- MCP：删除 `fuma_system_capabilities` 重复注册（此前 `fuma mcp` 启动即崩溃）；补 MCP 单测。
+- Logger：`silentConsole` 从不生效导致 MCP stdout 混入日志行（违反 stdio JSON-RPC 协议）；修复并补 logger 单测。
+- 对账：ID 归一化（`13148056.0` → `13148056`），修复每 5 分钟 200 条伪 `sync.conflict`；清理历史 2420 条 diff，reconcile 实测 diffs=0。
+- 调度器：启动 3s 后立即心跳，避免频繁重启导致保活空档。
+- 对账分页：从只查前 200 改为分页拉取（最多 5×200），手动对账 checked=491、diffs=0。
+- 容量刷新上游请求超时下调到 5s（避免网络异常时拖慢 `account.list`）。
+- 文档：README/docs/README/docs/10 版本、测试数（58）、验证表述更新；账号名称修正为宋释孟。
+
 ## [1.0.5] - 2026-11-15
 
 ### 新增/修复

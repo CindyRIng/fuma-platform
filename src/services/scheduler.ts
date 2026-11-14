@@ -27,6 +27,8 @@ export class Scheduler {
     this.timers.push(setInterval(() => { void this.runTasks(); }, 5000));
     this.timers.push(setInterval(() => { void this.runReconcile(); }, reconcileMs));
     this.timers.push(setTimeout(() => { void this.runSync(); }, 2000));
+    // 启动后尽早做一次心跳，避免频繁重启导致 24h 保活观察出现空档
+    this.timers.push(setTimeout(() => { void this.runHeartbeats(); }, 3000));
     this.rt.logger.info('scheduler started', { keepaliveMs, reloginMs, syncMs, reconcileMs });
   }
 

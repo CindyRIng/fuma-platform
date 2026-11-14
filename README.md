@@ -12,8 +12,8 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A522.5-brightgreen">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.5-blue">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-54%20passed-success">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.6-blue">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-58%20passed-success">
   <img alt="Upstream" src="https://img.shields.io/badge/upstream-fumamx.com-0aa2c0">
 </p>
 
@@ -47,7 +47,7 @@
 | 🌊 公海 | `open_sea.list/claim/release` | 公海列表、领取（**强制先查后领**）、释放、3 天冷却 |
 | 🔁 查重 | `dedup.check/history/batch` | 查重、历史、批量任务化（taskId + 进度 + 结果） |
 | 📇 联系人 | `contact.list/create` | 按客户查询、创建（本地优先 + edit_customer 同步，**已真实验证**） |
-| 📝 跟进 | `followup.list/create` | 跟进时间线、创建（本地优先；上游写契约待补，见限制） |
+| 📝 跟进 | `followup.list/create` | 跟进时间线、创建（本地优先 + `bill/add_one` 同步，已真实验证） |
 | 🚢 海关 | `customs.query/dictionaries/cache.*` | 按公司查询（MVP）、字典、缓存统计/清理 |
 | ⚙️ 同步 | `sync.status/reconcile/retry` | outbox 状态、对账收敛、失败重试 |
 | 📡 事件 | `event.list` | `sinceSeq` 轮询，事件在本地事务内落库 |
@@ -167,7 +167,7 @@ SQLite 已开启 WAL / `synchronous=NORMAL` / 64MB cache / mmap 256MB / prepared
 ```bash
 npm install
 npm run typecheck
-npm test            # 53 个用例
+npm test            # 58 个用例
 npm run build
 npm run spec        # spec/openapi.json · cli-commands.json · mcp-tools.json
 npm run docs:gen    # docs/generated/*
@@ -176,7 +176,7 @@ npm run bench       # 50 账号 mock 压测
 
 ## 状态与已知限制
 
-- **v1.0.1**：P2–P6 完成；systemd 部署运行中；GitHub public（MIT）。
+- **v1.0.6**：P2–P6 完成；systemd 部署运行中；GitHub public（MIT）。
 - ⚠️ **删除客户**：当前验证账号无删除权限（上游 1114），平台如实返回错误；需管理员或换有权限账号。
 - ⚠️ **扫码登录**：首次需人工扫码一次；之后心跳保活，24h 令牌到期后按重登策略处理（正在进行 24h 保活观察）。
 - ⚠️ **海关范围**：仅按公司查询；产品/交易分析、贸易监测不在 MVP。

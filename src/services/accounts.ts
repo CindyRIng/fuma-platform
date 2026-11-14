@@ -51,7 +51,7 @@ export async function refreshCapacityUsage(rt: Runtime, accountId: string): Prom
         organizationStructure: { type: 3, ownerCtIdList: ctId ? [ctId] : [] },
         page: { from: 0, size: 1 }
       },
-      timeoutMs: 20_000
+      timeoutMs: 5_000
     });
     rt.store.setKv(capacityUsageKey(accountId), { used: Number(data.totalNum ?? 0), fetchedAt: nowIso(), source: 'upstream' });
   } catch { /* 保留旧缓存/本地估算 */ }

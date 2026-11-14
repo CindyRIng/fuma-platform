@@ -173,7 +173,8 @@ function addSpecialCommands(program: Command): void {
     .description('以 stdio 启动 MCP server')
     .action(async () => {
       const globals = program.opts<Globals>();
-      const rt = getRuntime({ home: globals.home, loggerLevel: globals.debug ? 'debug' : undefined });
+      // MCP stdio 的 stdout 只能输出 JSON-RPC 消息，日志必须禁用控制台输出
+      const rt = getRuntime({ home: globals.home, loggerLevel: globals.debug ? 'debug' : undefined, silentConsole: true });
       await startMcpServer(rt);
     });
 

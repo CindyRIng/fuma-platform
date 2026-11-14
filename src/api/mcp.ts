@@ -51,23 +51,6 @@ export function createMcpServer(rt: Runtime): McpServer {
     );
   }
 
-  (server as any).registerTool(
-    'fuma_system_capabilities',
-    {
-      title: '能力清单',
-      description: '列出全部能力（含阶段/实现状态/CLI/REST/MCP 映射）',
-      inputSchema: {
-        includeUnimplemented: z.boolean().optional().describe('是否包含未实现能力（默认 false）')
-      }
-    },
-    async (args: Record<string, unknown>) => {
-      const data = CAPABILITIES
-        .filter((c) => args.includeUnimplemented || c.implemented)
-        .map((c) => ({ id: c.id, title: c.title, phase: c.phase, implemented: c.implemented, cli: `fuma ${c.noun} ${c.verb}`, rest: `${c.http.method} ${c.http.path}`, mcp: c.mcp.tool }));
-      return { content: [{ type: 'text' as const, text: JSON.stringify({ ok: true, data }, null, 2) }] };
-    }
-  );
-
   return server;
 }
 

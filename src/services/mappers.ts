@@ -35,7 +35,8 @@ export interface CustomerView {
 export function toNumberOrNull(v: unknown): number | null {
   if (v === null || v === undefined || v === '') return null;
   const n = Number(v);
-  return Number.isFinite(n) ? n : null;
+  // 孚盟部分接口会把 Long 序列化成 13148056.0 之类，统一截断为整数，避免对账误判
+  return Number.isFinite(n) ? Math.trunc(n) : null;
 }
 
 export function toStr(v: unknown): string {

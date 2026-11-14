@@ -342,18 +342,23 @@ export async function reconcileCustomers(rt: Runtime, accountId?: string): Promi
   let checked = 0;
   let diffs = 0;
   try {
-    const body: Record<string, unknown> = {
+    const baseBody: Record<string, unknown> = {
       recoveryFlag: false,
       moduleCode: 'NewBF001',
       organizationStructure: { type: 3, ownerCtIdList: ctId ? [ctId] : [] },
-      page: { from: 0, size: 200 },
       orderBy: { desc: 'desc', realFieldName: 'modify_date', tableCode: '1' }
     };
-    const data = await rt.upstream.call<UpstreamCustomerList>({ accountId: account.accountId, tokens: account.tokens, logger: rt.logger }, {
-      method: 'POST', path: '/bill/bill/get_page_list', body
-    });
-    const upstreamList = data.list ?? [];
     const localRows = new Map(rt.store.all<Record<string, unknown>>('SELECT * FROM customers WHERE account_id=?', account.accountId).map((r) => [String(r.customer_id), r]));
+    let upstreamTotal: number | null = null;
+    let pages = 0;
+    const MAX_PAGES = 5;
+    for (let pageNo = 0; pageNo < MAX_PAGES; pageNo++) {
+      const data = await rt.upstream.call<UpstreamCustomerList>({ accountId: account.accountId, tokens: account.tokens, logger: rt.logger }, {
+        method: 'POST', path: '/bill/bill/get_page_list', body: { ...baseBody, page: { from: pageNo * 200, size: 200 } }
+      });
+      const upstreamList = data.list ?? [];
+      if (pageNo === 0) upstreamTotal = data.totalNum ?? null;
+      pages = pageNo + 1;
     for (const raw of upstreamList) {
       checked++;
       const view = mapCustomer(raw, account.accountId);
@@ -363,11 +368,13 @@ export async function reconcileCustomers(rt: Runtime, accountId?: string): Promi
         continue;
       }
       const localSeas = Number(local.seas_flag ?? 0);
-      const localOwner = local.owner_ct_id ? String(local.owner_ct_id) : null;
-      const upstreamOwner = view.ownerCtId !== null ? String(view.ownerCtId) : null;
+      const localOwner = local.owner_ct_id !== null && local.owner_ct_id !== undefined && local.owner_ct_id !== ''
+        ? Math.trunc(Number(local.owner_ct_id))
+        : null;
+      const upstreamOwner = view.ownerCtId !== null ? Math.trunc(Number(view.ownerCtId)) : null;
       const changes: Array<{ field: string; local: unknown; upstream: unknown }> = [];
       if (Number.isFinite(view.seasFlag) && localSeas !== view.seasFlag) changes.push({ field: 'seasFlag', local: localSeas, upstream: view.seasFlag });
-      if (localOwner !== upstreamOwner) changes.push({ field: 'ownerCtId', local: localOwner, upstream: upstreamOwner });
+      if (localOwner !== upstreamOwner && !(localOwner === null && upstreamOwner === null)) changes.push({ field: 'ownerCtId', local: localOwner, upstream: upstreamOwner });
       if (changes.length) {
         diffs += changes.length;
         for (const c of changes) {
@@ -378,11 +385,14 @@ export async function reconcileCustomers(rt: Runtime, accountId?: string): Promi
         }
         // 冲突收敛到上游
         rt.store.run('UPDATE customers SET seas_flag=?, owner_ct_id=?, cust_name=?, sync_state=?, raw_json=?, updated_at=? WHERE customer_id=?',
-          view.seasFlag, view.ownerCtId, view.custName, 'synced', JSON.stringify(view.raw ?? {}), nowIso(), view.customerId);
+          view.seasFlag, view.ownerCtId === null ? null : String(Math.trunc(Number(view.ownerCtId))), view.custName, 'synced', JSON.stringify(view.raw ?? {}), nowIso(), view.customerId);
         publishEvent(rt, { type: 'sync.conflict', accountId: account.accountId, entityType: 'customer', entityId: view.customerId, payload: { entity: 'customer', customerId: view.customerId, diffs: changes } });
       }
     }
-    rt.store.run(`UPDATE reconcile_runs SET finished_at=?, status='succeeded', stats_json=? WHERE id=?`, nowIso(), JSON.stringify({ checked, diffs }), runId);
+      if (upstreamList.length < 200) break;
+      if (upstreamTotal !== null && pages * 200 >= upstreamTotal) break;
+    }
+    rt.store.run(`UPDATE reconcile_runs SET finished_at=?, status='succeeded', stats_json=? WHERE id=?`, nowIso(), JSON.stringify({ checked, diffs, upstreamTotal, pages }), runId);
   } catch (err) {
     rt.store.run(`UPDATE reconcile_runs SET finished_at=?, status='failed', error=? WHERE id=?`, nowIso(), String(err instanceof Error ? err.message : err).slice(0, 500), runId);
     throw err;

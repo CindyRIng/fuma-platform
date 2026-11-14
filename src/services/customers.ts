@@ -25,6 +25,12 @@ function accountCtId(rt: Runtime, accountId: string): number | null {
   return row?.owner_ct_id ? Number(row.owner_ct_id) : null;
 }
 
+function normalizeId(v: number | string | null): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+}
+
 export function upsertCustomer(rt: Runtime, view: CustomerView): void {
   const now = nowIso();
   const exists = rt.store.get('SELECT customer_id FROM customers WHERE customer_id=?', view.customerId);
@@ -34,7 +40,7 @@ export function upsertCustomer(rt: Runtime, view: CustomerView): void {
        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       view.customerId, view.accountId, view.cId, view.custName, view.custShortName, view.billCode,
       view.countryId, view.web, view.tel, view.mobile, view.custLevel, view.custSource, view.custState,
-      view.seasFlag, view.ownerCtId, view.ownerDeptKey, view.willInSeaDate, null,
+      view.seasFlag, normalizeId(view.ownerCtId), normalizeId(view.ownerDeptKey), view.willInSeaDate, null,
       JSON.stringify(view.raw ?? {}), now, now
     );
   } else {
@@ -42,7 +48,7 @@ export function upsertCustomer(rt: Runtime, view: CustomerView): void {
       `UPDATE customers SET account_id=COALESCE(?,account_id), c_id=?, cust_name=?, cust_short_name=?, bill_code=?, country_id=?, web=?, tel=?, mobile=?,
        cust_level=?, cust_source=?, cust_state=?, seas_flag=?, owner_ct_id=?, owner_dept_key=?, will_in_sea_at=?, raw_json=?, updated_at=? WHERE customer_id=?`,
       view.accountId, view.cId, view.custName, view.custShortName, view.billCode, view.countryId, view.web, view.tel, view.mobile,
-      view.custLevel, view.custSource, view.custState, view.seasFlag, view.ownerCtId, view.ownerDeptKey, view.willInSeaDate,
+      view.custLevel, view.custSource, view.custState, view.seasFlag, normalizeId(view.ownerCtId), normalizeId(view.ownerDeptKey), view.willInSeaDate,
       JSON.stringify(view.raw ?? {}), now, view.customerId
     );
   }
