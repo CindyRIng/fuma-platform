@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "fuma-platform API",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "fumamx 本地封装平台 REST API。specVersion=2026-11-15.1。统一 envelope：{ok,data,meta,error}。鉴权：Authorization: Bearer <apiToken>（/v1/health 与 /v1/docs 除外）。"
   },
   "servers": [
@@ -2493,6 +2493,79 @@
           "implemented": true,
           "cli": "fuma event list",
           "mcp": "fuma_event_list"
+        }
+      }
+    },
+    "/v1/events/purge": {
+      "post": {
+        "operationId": "event.purge",
+        "summary": "按类型与时间归档并删除历史事件",
+        "description": "归档/清理历史事件：默认删除 30 天前事件；可按类型过滤、先写 JSONL 归档、dryRun 预览。",
+        "tags": [
+          "event"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（统一 envelope）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "业务错误（envelope.ok=false）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        },
+        "x-fuma": {
+          "capability": "event.purge",
+          "phase": "P6",
+          "mutating": true,
+          "implemented": true,
+          "cli": "fuma event purge",
+          "mcp": "fuma_event_purge"
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "olderThanDays": {
+                    "description": "删除早于 N 天的事件（0=删除全部早于当前时刻）",
+                    "type": "number"
+                  },
+                  "before": {
+                    "description": "绝对截止时间 ISO（优先于 olderThanDays）",
+                    "type": "string"
+                  },
+                  "types": {
+                    "description": "事件类型过滤，逗号分隔，如 sync.conflict",
+                    "type": "string"
+                  },
+                  "archive": {
+                    "description": "归档 JSONL 路径（删除前写入）",
+                    "type": "string"
+                  },
+                  "dryRun": {
+                    "description": "只统计不删除",
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

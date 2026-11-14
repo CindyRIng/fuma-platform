@@ -1272,6 +1272,52 @@
     "implemented": true
   },
   {
+    "command": "fuma event purge",
+    "noun": "event",
+    "verb": "purge",
+    "title": "事件归档/清理",
+    "summary": "按类型与时间归档并删除历史事件",
+    "description": "归档/清理历史事件：默认删除 30 天前事件；可按类型过滤、先写 JSONL 归档、dryRun 预览。",
+    "args": [],
+    "options": [
+      {
+        "flags": "--older-than-days <n>",
+        "type": "number",
+        "required": false,
+        "description": "删除早于 N 天的事件（0=删除全部早于当前时刻）",
+        "default": 30
+      },
+      {
+        "flags": "--before <iso>",
+        "type": "string",
+        "required": false,
+        "description": "绝对截止时间 ISO（优先于 olderThanDays）"
+      },
+      {
+        "flags": "--types <csv>",
+        "type": "string",
+        "required": false,
+        "description": "事件类型过滤，逗号分隔，如 sync.conflict"
+      },
+      {
+        "flags": "--archive <file>",
+        "type": "string",
+        "required": false,
+        "description": "归档 JSONL 路径（删除前写入）"
+      },
+      {
+        "flags": "--dry-run",
+        "type": "boolean",
+        "required": false,
+        "description": "只统计不删除",
+        "default": false
+      }
+    ],
+    "example": "fuma event purge --types sync.conflict --older-than-days 0 --archive ~/.fuma-platform/backups/events.jsonl",
+    "phase": "P6",
+    "implemented": true
+  },
+  {
     "command": "fuma sync status",
     "noun": "sync",
     "verb": "status",

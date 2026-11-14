@@ -12,8 +12,8 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A522.5-brightgreen">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.6-blue">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-58%20passed-success">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.7-blue">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-60%20passed-success">
   <img alt="Upstream" src="https://img.shields.io/badge/upstream-fumamx.com-0aa2c0">
 </p>
 
@@ -36,7 +36,7 @@
 - 🧠 **本地事实优先**：写操作先落本地事务 + outbox，再异步同步上游；上游冲突自动收敛，返回给编排层的永远是确定事实。
 - 🚀 **登录一次，长期可用**：钉钉 SSO 扫码 → 自动选组织/企业 → token 加密落库 → 心跳保活 + 到期重登队列。
 - 🗄️ **海关数据本地缓存**：强制缓存、TTL、上游更新日志失效、LRU 容量、权限域隔离；命中路径 **0.2ms**（实测）。
-- 🧩 **单一能力注册表**：43 项能力同时生成 CLI / REST / MCP / spec / docs，不会出现入口不一致。
+- 🧩 **单一能力注册表**：44 项能力同时生成 CLI / REST / MCP / spec / docs，不会出现入口不一致。
 
 ## 核心能力
 
@@ -50,7 +50,7 @@
 | 📝 跟进 | `followup.list/create` | 跟进时间线、创建（本地优先 + `bill/add_one` 同步，已真实验证） |
 | 🚢 海关 | `customs.query/dictionaries/cache.*` | 按公司查询（MVP）、字典、缓存统计/清理 |
 | ⚙️ 同步 | `sync.status/reconcile/retry` | outbox 状态、对账收敛、失败重试 |
-| 📡 事件 | `event.list` | `sinceSeq` 轮询，事件在本地事务内落库 |
+| 📡 事件 | `event.list/purge` | `sinceSeq` 轮询；归档/清理历史事件（30 天保留 + 手动 purge） |
 | 🧵 任务 | `task.get/list/cancel` | 批量任务化，进度/结果/取消 |
 | 🩺 运维 | `system.health/status/doctor` | 健康检查、详细状态、自检 |
 
@@ -167,7 +167,7 @@ SQLite 已开启 WAL / `synchronous=NORMAL` / 64MB cache / mmap 256MB / prepared
 ```bash
 npm install
 npm run typecheck
-npm test            # 58 个用例
+npm test            # 60 个用例
 npm run build
 npm run spec        # spec/openapi.json · cli-commands.json · mcp-tools.json
 npm run docs:gen    # docs/generated/*

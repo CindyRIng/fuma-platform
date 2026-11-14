@@ -383,6 +383,13 @@ export const CAPABILITIES: Capability[] = [
     http: { method: 'GET', path: '/v1/events' }, example: 'fuma event list --since-seq 0'
   }),
   cap({
+    id: 'event.purge', noun: 'event', verb: 'purge', title: '事件归档/清理', summary: '按类型与时间归档并删除历史事件',
+    description: '归档/清理历史事件：默认删除 30 天前事件；可按类型过滤、先写 JSONL 归档、dryRun 预览。',
+    category: 'event', phase: 'P6', mutating: true, implemented: true,
+    params: [opt('olderThanDays', '--older-than-days <n>', 'number', '删除早于 N 天的事件（0=删除全部早于当前时刻）', false, 30), opt('before', '--before <iso>', 'string', '绝对截止时间 ISO（优先于 olderThanDays）'), opt('types', '--types <csv>', 'string', '事件类型过滤，逗号分隔，如 sync.conflict'), opt('archive', '--archive <file>', 'string', '归档 JSONL 路径（删除前写入）'), opt('dryRun', '--dry-run', 'boolean', '只统计不删除', false, false)],
+    http: { method: 'POST', path: '/v1/events/purge' }, example: 'fuma event purge --types sync.conflict --older-than-days 0 --archive ~/.fuma-platform/backups/events.jsonl'
+  }),
+  cap({
     id: 'sync.status', noun: 'sync', verb: 'status', title: '同步状态', summary: 'outbox/对账状态',
     description: '同步状态：outbox 队列、失败明细、最近对账时间、差异数。',
     category: 'sync', phase: 'P5', mutating: false, implemented: true, params: [],

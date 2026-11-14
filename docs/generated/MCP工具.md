@@ -1,6 +1,6 @@
 # MCP 工具参考
 
-> 版本 1.0.6｜stdio 运行：`fuma mcp`｜共 43 个工具（已实现 42 个）。
+> 版本 1.0.7｜stdio 运行：`fuma mcp`｜共 44 个工具（已实现 43 个）。
 
 | 工具 | 说明 | 阶段 | 已实现 |
 |---|---|---|---|
@@ -44,6 +44,7 @@
 | `fuma_task_cancel` | 取消任务 | P5 | ✅ |
 | `fuma_task_list` | 任务列表 | P4 | ✅ |
 | `fuma_event_list` | 事件查询 | P5 | ✅ |
+| `fuma_event_purge` | 事件归档/清理 | P6 | ✅ |
 | `fuma_sync_status` | 同步状态 | P5 | ✅ |
 | `fuma_sync_reconcile` | 触发对账 | P5 | ✅ |
 | `fuma_sync_retry` | 重试 outbox | P5 | ✅ |
@@ -1182,6 +1183,41 @@ MVP 仅按公司查询（tradeList 公司维度）。强制本地缓存：命中
     "type": {
       "type": "string",
       "description": "事件类型过滤"
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+## fuma_event_purge
+
+归档/清理历史事件：默认删除 30 天前事件；可按类型过滤、先写 JSONL 归档、dryRun 预览。
+
+对应 CLI: fuma event purge；对应 REST: POST /v1/events/purge。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "olderThanDays": {
+      "type": "number",
+      "description": "删除早于 N 天的事件（0=删除全部早于当前时刻）"
+    },
+    "before": {
+      "type": "string",
+      "description": "绝对截止时间 ISO（优先于 olderThanDays）"
+    },
+    "types": {
+      "type": "string",
+      "description": "事件类型过滤，逗号分隔，如 sync.conflict"
+    },
+    "archive": {
+      "type": "string",
+      "description": "归档 JSONL 路径（删除前写入）"
+    },
+    "dryRun": {
+      "type": "boolean",
+      "description": "只统计不删除"
     }
   },
   "additionalProperties": false

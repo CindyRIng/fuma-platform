@@ -80,6 +80,7 @@ export const ConfigSchema = z.object({
   }).prefault({}),
   events: z.object({
     retentionDays: z.number().int().default(30),
+    autoPurge: z.boolean().default(true),
     webhook: z.object({ enabled: z.boolean().default(false), url: z.string().default(''), secret: z.string().default('') }).prefault({})
   }).prefault({}),
   logging: z.object({ level: z.enum(['debug', 'info', 'warn', 'error']).default('info'), redact: z.boolean().default(true) }).prefault({}),

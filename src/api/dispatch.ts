@@ -12,7 +12,7 @@ import { customsCachePurge, customsCacheStats, customsDictionaries, customsQuery
 import { nowIso } from '../core/time.js';
 import { claim, createContact, createCustomer, createFollowup, deleteCustomer, release, updateCustomer } from '../services/writes.js';
 import { cancelTask as cancelTaskSvc, createDedupBatch } from '../services/tasks.js';
-import { listEvents } from '../core/events.js';
+import { listEvents, purgeEvents } from '../core/events.js';
 import { reconcileCustomers, retryOutbox, syncStatusDetail } from '../services/sync.js';
 import type { Runtime } from '../services/runtime.js';
 import { VERSION, SPEC_VERSION } from '../version.js';
@@ -282,6 +282,14 @@ export async function dispatch(rt: Runtime, capabilityId: string, input: Record<
     }
     case 'task.cancel':
       return cancelTaskSvc(rt, requireString(input, 'taskId'));
+    case 'event.purge':
+      return purgeEvents(rt, {
+        olderThanDays: input.olderThanDays as number | string | undefined,
+        before: typeof input.before === 'string' ? input.before : undefined,
+        types: typeof input.types === 'string' ? input.types : undefined,
+        archive: typeof input.archive === 'string' ? input.archive : undefined,
+        dryRun: input.dryRun === true
+      });
     case 'event.list':
       return listEvents(rt, {
         sinceSeq: input.sinceSeq as number | string | undefined,

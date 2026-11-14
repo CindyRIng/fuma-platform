@@ -1,6 +1,6 @@
 # REST API 参考
 
-> 版本 1.0.6｜OpenAPI: `spec/openapi.json`｜服务地址默认 `http://127.0.0.1:17890`。
+> 版本 1.0.7｜OpenAPI: `spec/openapi.json`｜服务地址默认 `http://127.0.0.1:17890`。
 
 鉴权：`Authorization: Bearer <apiToken>`（`/v1/health`、`/v1/docs`、`/v1/openapi.json`、`/v1/spec/*` 免鉴权）。
 
@@ -52,6 +52,7 @@
 | POST | `/v1/tasks/{taskId}/cancel` | 取消任务：取消排队/运行中的任务 | `task.cancel` | P5 |
 | GET | `/v1/tasks` | 任务列表：按状态/类型列出任务 | `task.list` | P4 |
 | GET | `/v1/events` | 事件查询：按序号轮询事件（sinceSeq） | `event.list` | P5 |
+| POST | `/v1/events/purge` | 事件归档/清理：按类型与时间归档并删除历史事件 | `event.purge` | P6 |
 | GET | `/v1/sync/status` | 同步状态：outbox/对账状态 | `sync.status` | P5 |
 | POST | `/v1/sync/reconcile` | 触发对账：拉取上游增量并收敛 | `sync.reconcile` | P5 |
 | POST | `/v1/sync/outbox/retry` | 重试 outbox：手动重试失败的同步项 | `sync.retry` | P5 |
@@ -444,6 +445,18 @@ MVP 仅按公司查询（tradeList 公司维度）。强制本地缓存：命中
 | `sinceSeq` | query | number | 否 | 起始序号（不含） |
 | `limit` | query | number | 否 | 最多条数 |
 | `type` | query | string | 否 | 事件类型过滤 |
+
+### POST /v1/events/purge
+
+归档/清理历史事件：默认删除 30 天前事件；可按类型过滤、先写 JSONL 归档、dryRun 预览。
+
+| 参数 | 位置 | 类型 | 必填 | 说明 |
+|---|---|---|---|---|
+| `olderThanDays` | body | number | 否 | 删除早于 N 天的事件（0=删除全部早于当前时刻） |
+| `before` | body | string | 否 | 绝对截止时间 ISO（优先于 olderThanDays） |
+| `types` | body | string | 否 | 事件类型过滤，逗号分隔，如 sync.conflict |
+| `archive` | body | string | 否 | 归档 JSONL 路径（删除前写入） |
+| `dryRun` | body | boolean | 否 | 只统计不删除 |
 
 ### GET /v1/sync/status
 

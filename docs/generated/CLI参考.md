@@ -1,6 +1,6 @@
 # CLI 参考（fuma）
 
-> 版本 1.0.6｜spec 2026-11-15.1｜由 `npm run docs:gen` 生成，请勿手改。
+> 版本 1.0.7｜spec 2026-11-15.1｜由 `npm run docs:gen` 生成，请勿手改。
 
 全局选项：`--home <dir>`、`--format json|table`、`--quiet`、`--debug`、`--json`（单命令强制 JSON）。
 
@@ -50,6 +50,7 @@
 | `fuma task cancel` | 取消任务：取消排队/运行中的任务 | P5 | ✅ |
 | `fuma task list` | 任务列表：按状态/类型列出任务 | P4 | ✅ |
 | `fuma event list` | 事件查询：按序号轮询事件（sinceSeq） | P5 | ✅ |
+| `fuma event purge` | 事件归档/清理：按类型与时间归档并删除历史事件 | P6 | ✅ |
 | `fuma sync status` | 同步状态：outbox/对账状态 | P5 | ✅ |
 | `fuma sync reconcile` | 触发对账：拉取上游增量并收敛 | P5 | ✅ |
 | `fuma sync retry` | 重试 outbox：手动重试失败的同步项 | P5 | ✅ |
@@ -669,6 +670,24 @@ fuma task list --status running
 
 ```bash
 fuma event list --since-seq 0
+```
+
+### undefined
+
+**事件归档/清理** — 按类型与时间归档并删除历史事件
+
+归档/清理历史事件：默认删除 30 天前事件；可按类型过滤、先写 JSONL 归档、dryRun 预览。
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `--older-than-days <n>` | number | 否 | 删除早于 N 天的事件（0=删除全部早于当前时刻）（默认 `30`） |
+| `--before <iso>` | string | 否 | 绝对截止时间 ISO（优先于 olderThanDays） |
+| `--types <csv>` | string | 否 | 事件类型过滤，逗号分隔，如 sync.conflict |
+| `--archive <file>` | string | 否 | 归档 JSONL 路径（删除前写入） |
+| `--dry-run` | boolean | 否 | 只统计不删除（默认 `false`） |
+
+```bash
+fuma event purge --types sync.conflict --older-than-days 0 --archive ~/.fuma-platform/backups/events.jsonl
 ```
 
 ### undefined

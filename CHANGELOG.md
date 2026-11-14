@@ -1,3 +1,12 @@
+## [1.0.7] - 2026-11-15
+
+### 新增/清理
+
+- 新增能力 `event.purge`：按类型/时间归档并清理历史事件（支持 `--archive` JSONL、`--dry-run`；CLI/REST/MCP 三入口）。
+- 事件自动保留策略：`events.retentionDays=30`、`events.autoPurge=true`，调度器每小时清理过期事件。
+- 清理历史 `sync.conflict` 事件 2420 条（已归档到 `~/.fuma-platform/backups/events-sync-conflict-20261115.jsonl`，770KB），清理后剩余 2 条常规事件。
+- 新增 events 单测；测试总数 60（16 文件）。
+
 ## [1.0.6] - 2026-11-15
 
 ### 修复（全面自检）
