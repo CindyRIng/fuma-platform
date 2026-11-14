@@ -118,7 +118,7 @@ fuma serve &   # http://127.0.0.1:17890
 TOKEN=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.HOME+'/.fuma-platform/config.json','utf8')).server.apiToken)")
 curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:17890/v1/health
 curl -s -H "Authorization: Bearer $TOKEN" -X POST http://127.0.0.1:17890/v1/customers/list -H 'content-type: application/json' -d '{"page":1,"pageSize":5}'
-open http://127.0.0.1:17890/v1/docs        # Swagger UI
+open http://127.0.0.1:17890/v1/docs        # 浏览器查看 REST API 文档（OpenAPI 可导入 Swagger/Postman）
 curl -s http://127.0.0.1:17890/v1/openapi.json | head
 
 fuma mcp    # MCP stdio，供 Claude/其他 Agent 直接调用
