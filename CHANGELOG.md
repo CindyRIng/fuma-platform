@@ -32,3 +32,11 @@
 - 上游删除客户受账号权限限制（验证账号无删除权限）。
 - 完整扫码登录/24h 保活/免扫码重登需人工联调。
 - 海关产品/交易分析与贸易监测不在 MVP。
+
+## [1.0.0] - post-release validation (2026-11-15)
+
+- 真实扫码登录 E2E 验证通过（生产账号 online）。
+- 生产 REST 客户/海关/心跳验证通过；systemd 部署运行中。
+- 新增 `scripts/bench-live.ts`（真实上游延迟基准）与 `scripts/keepalive-watch.ts`（24h 保活观察）。
+- 实测筛选后缀：CONTAIN=`_like`、IS=`_eq`、NOT_IN=`_notin`。
+- 发现并记录：发起新登录会使旧 token 立即失效（单会话行为）。
