@@ -10,59 +10,100 @@ const jsonType: Record<ParamSpec['type'], string> = {
   json: 'object'
 };
 
+const TAG_DESCRIPTIONS: Record<string, string> = {
+  system: '系统与能力发现（健康检查、状态、版本、能力清单）',
+  account: '账号登记与容量',
+  session: '登录会话：扫码登录、二维码、心跳、登出（token 加密存储）',
+  customer: '客户（客保库）：列表/详情/建档/编辑/删除',
+  open_sea: '公海：列表、领取（强制先查后领）、释放、冷却',
+  dedup: '查重：单次/历史/批量任务化',
+  contact: '联系人：查询与新增',
+  followup: '跟进：时间线与新增',
+  customs: '海关数据：按公司查询 / 字典 / 本地缓存',
+  sync: '同步与对账：outbox、reconcile、retry',
+  event: '事件：轮询、归档清理',
+  task: '任务：查询/取消/批量任务',
+  cache: '缓存运维',
+  meta: '元数据与字典'
+};
+
 function paramSchema(p: ParamSpec): Record<string, unknown> {
   const base: Record<string, unknown> = { description: p.description };
+  if (p.default !== undefined) base.default = p.default;
   if (p.type === 'json') return { ...base, type: 'object', additionalProperties: true };
   return { ...base, type: jsonType[p.type] };
 }
 
-function objectSchema(params: ParamSpec[], onlyBody = false): Record<string, unknown> {
-  const props: Record<string, unknown> = {};
-  const required: string[] = [];
-  for (const p of params) {
-    if (onlyBody && (p.in === 'arg' || p.in === 'option')) props[p.name] = paramSchema(p);
-    else props[p.name] = paramSchema(p);
-    if (p.required) required.push(p.name);
-  }
-  return { type: 'object', properties: props, ...(required.length ? { required } : {}), additionalProperties: false };
+function envelopeResponse(description: string): Record<string, unknown> {
+  return {
+    description,
+    content: { 'application/json': { schema: { $ref: '#/components/schemas/Envelope' } } }
+  };
+}
+
+function errorResponse(description: string): Record<string, unknown> {
+  return {
+    description,
+    content: { 'application/json': { schema: { $ref: '#/components/schemas/Envelope' } } }
+  };
 }
 
 export function capabilityToOpenApi(c: Capability): Record<string, unknown> {
-  const pathParams: Array<Record<string, unknown>> = [];
+  const pathNames = new Set([...c.http.path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]));
+  const pathParams = [...pathNames].map((name) => ({ name, in: 'path', required: true, schema: { type: 'string' }, description: `路径参数 ${name}` }));
   const queryParams: Array<Record<string, unknown>> = [];
-  const bodyParams: Array<Record<string, unknown>> = [];
-  for (const m of c.http.path.matchAll(/\{([^}]+)\}/g)) {
-    const name = m[1];
-    pathParams.push({ name, in: 'path', required: true, schema: { type: 'string' } });
-  }
+  const bodyProps: Record<string, unknown> = {};
+  const bodyRequired: string[] = [];
   for (const p of c.params) {
-    if (p.in === 'arg') continue;
-    const inPath = c.http.path.includes(`{${p.name}}`);
-    if (inPath) continue;
-    if (c.http.method === 'GET') queryParams.push({ name: p.name, in: 'query', required: !!p.required, ...paramSchema(p) });
-    else bodyParams.push({ name: p.name, ...paramSchema(p) });
+    if (pathNames.has(p.name)) continue;
+    if (c.http.method === 'GET') {
+      queryParams.push({ name: p.name, in: 'query', required: !!p.required, ...paramSchema(p) });
+    } else {
+      bodyProps[p.name] = paramSchema(p);
+      if (p.required) bodyRequired.push(p.name);
+    }
   }
+  const description = [
+    c.description,
+    '',
+    `CLI: \`fuma ${c.noun} ${c.verb}\`；MCP: \`${c.mcp.tool}\`。`,
+    '',
+    '统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。'
+  ].join('\n');
   const op: Record<string, unknown> = {
     operationId: c.id,
-    summary: c.summary,
-    description: c.description,
+    summary: c.title,
+    description,
     tags: [c.category],
     parameters: [...pathParams, ...queryParams],
     responses: {
-      '200': { description: '成功（统一 envelope）', content: { 'application/json': { schema: { $ref: '#/components/schemas/Envelope' } } } },
-      '4XX': { description: '业务错误（envelope.ok=false）', content: { 'application/json': { schema: { $ref: '#/components/schemas/Envelope' } } } }
+      '200': envelopeResponse('成功（envelope.ok=true）'),
+      '400': errorResponse('参数错误（invalid_argument）'),
+      '401': errorResponse('未鉴权或 token 无效（unauthorized）'),
+      '404': errorResponse('资源不存在（not_found）'),
+      '409': errorResponse('状态冲突（conflict）'),
+      '500': errorResponse('服务内部错误（internal_error）')
     },
-    'x-fuma': { capability: c.id, phase: c.phase, mutating: c.mutating, implemented: c.implemented, cli: `fuma ${c.noun} ${c.verb}`, mcp: c.mcp.tool }
+    deprecated: !c.implemented,
+    'x-fuma-capability': c.id,
+    'x-fuma-phase': c.phase,
+    'x-fuma-mutating': c.mutating,
+    'x-fuma-implemented': c.implemented,
+    'x-fuma-cli': `fuma ${c.noun} ${c.verb}`,
+    'x-fuma-mcp': c.mcp.tool,
+    'x-fuma-example': c.example
   };
-  if (bodyParams.length) {
+  if (c.http.path === '/v1/health') op.security = [];
+  if (c.http.method !== 'GET' && Object.keys(bodyProps).length) {
     op.requestBody = {
-      required: bodyParams.some((p) => (p.required as boolean)),
+      required: bodyRequired.length > 0,
       content: {
         'application/json': {
           schema: {
             type: 'object',
-            properties: Object.fromEntries(bodyParams.map((p) => [p.name as string, { description: p.description, ...(p.type === 'object' ? { type: 'object', additionalProperties: true } : { type: p.type }) }])),
-            ...(bodyParams.some((p) => p.required) ? { required: bodyParams.filter((p) => p.required).map((p) => p.name) } : {})
+            properties: bodyProps,
+            ...(bodyRequired.length ? { required: bodyRequired } : {}),
+            additionalProperties: false
           }
         }
       }
@@ -78,36 +119,74 @@ export function buildOpenApi(): Record<string, unknown> {
     paths[c.http.path] = paths[c.http.path] ?? {};
     paths[c.http.path][method] = capabilityToOpenApi(c);
   }
+  const categories = [...new Set(CAPABILITIES.map((c) => c.category))];
   return {
-    openapi: '3.1.0',
+    openapi: '3.0.3',
     info: {
       title: 'fuma-platform API',
       version: VERSION,
-      description: `fumamx 本地封装平台 REST API。specVersion=${SPEC_VERSION}。统一 envelope：{ok,data,meta,error}。鉴权：Authorization: Bearer <apiToken>（/v1/health 与 /v1/docs 除外）。`
+      summary: '孚盟本地封装平台 REST API（标准 OpenAPI 3.0）',
+      description: [
+        'fuma-platform 是孚盟（fumamx.com）本地封装平台的 REST API。',
+        '',
+        '**统一响应 envelope**：`{ ok, data, meta, error }`；成功 `ok=true`，失败 `ok=false` 且 `error.code` 为业务错误码。',
+        '',
+        '**鉴权**：`Authorization: Bearer <apiToken>`（apiToken 见 `~/.fuma-platform/config.json`）；`/v1/health`、`/v1/docs`、`/v1/openapi.json` 等公开。',
+        '',
+        '**能力与入口**：44 项能力同时映射 CLI / REST / MCP；扩展字段 `x-fuma-*` 给出 CLI/MCP 映射与实现阶段。',
+        '',
+        `specVersion: ${SPEC_VERSION}；Swagger UI: /v1/docs；OpenAPI JSON: /v1/openapi.json`
+      ].join('\n'),
+      contact: { name: 'fuma-platform', url: 'https://github.com/CindyRIng/fuma-platform' },
+      license: { name: 'MIT', url: 'https://github.com/CindyRIng/fuma-platform/blob/main/LICENSE' }
     },
-    servers: [{ url: 'http://127.0.0.1:17890', description: '本机 REST' }],
-    tags: [...new Set(CAPABILITIES.map((c) => c.category))].map((name) => ({ name })),
+    servers: [
+      { url: '/', description: '当前服务（相对路径）' },
+      { url: 'http://127.0.0.1:17890', description: '本机默认 REST 地址' }
+    ],
+    tags: categories.map((name) => ({ name, description: TAG_DESCRIPTIONS[name] ?? name })),
     paths,
+    externalDocs: { description: '项目文档', url: 'https://github.com/CindyRIng/fuma-platform/blob/main/docs/README.md' },
     components: {
+      securitySchemes: {
+        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'apiToken', description: 'REST apiToken（Authorization: Bearer <token>）' }
+      },
       schemas: {
+        Meta: {
+          type: 'object',
+          properties: {
+            requestId: { type: 'string' },
+            specVersion: { type: 'string' },
+            durationMs: { type: 'number' },
+            accountId: { type: 'string', nullable: true }
+          }
+        },
+        Error: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            code: { type: 'string', description: '业务错误码，如 invalid_argument / unauthorized / not_found / conflict / upstream_error' },
+            message: { type: 'string' },
+            retryable: { type: 'boolean' },
+            details: { type: 'object', nullable: true, additionalProperties: true },
+            retryAfterMs: { type: 'number', nullable: true }
+          }
+        },
         Envelope: {
           type: 'object',
+          description: '统一响应 envelope',
           required: ['ok', 'data', 'meta', 'error'],
           properties: {
             ok: { type: 'boolean' },
-            data: { nullable: true },
-            meta: { type: 'object', properties: { requestId: { type: 'string' }, specVersion: { type: 'string' }, durationMs: { type: 'number' }, accountId: { type: 'string' } } },
-            error: {
-              nullable: true,
-              type: 'object',
-              properties: { code: { type: 'string' }, message: { type: 'string' }, retryable: { type: 'boolean' }, details: { type: 'object' }, retryAfterMs: { type: 'number' } }
-            }
+            data: { nullable: true, description: '业务数据（各能力不同；失败时为 null）' },
+            meta: { $ref: '#/components/schemas/Meta' },
+            error: { $ref: '#/components/schemas/Error' }
           }
         }
-      },
-      securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer' } }
+      }
     },
-    security: [{ bearerAuth: [] }]
+    security: [{ bearerAuth: [] }],
+    'x-fuma-spec-version': SPEC_VERSION
   };
 }
 

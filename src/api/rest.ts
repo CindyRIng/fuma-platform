@@ -1,5 +1,8 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { CAPABILITIES, type Capability, type ParamSpec } from './capabilities.js';
 import { dispatch } from './dispatch.js';
 import { errorEnvelope, httpStatusOf, okEnvelope } from './envelope.js';
@@ -10,13 +13,69 @@ import { AppError, toAppError } from '../core/errors.js';
 import { SPEC_VERSION, VERSION } from '../version.js';
 import type { Runtime } from '../services/runtime.js';
 
+const requireFromHere = createRequire(import.meta.url);
+let swaggerDir: string | null = null;
+const swaggerCache = new Map<string, Buffer>();
+
+function swaggerAsset(name: string): Buffer | null {
+  const cached = swaggerCache.get(name);
+  if (cached) return cached;
+  try {
+    if (!swaggerDir) swaggerDir = dirname(requireFromHere.resolve('swagger-ui-dist/package.json'));
+    const buf = readFileSync(join(swaggerDir, name));
+    swaggerCache.set(name, buf);
+    return buf;
+  } catch {
+    return null;
+  }
+}
+
+const SWAGGER_ASSETS: Record<string, { file: string; mime: string }> = {
+  'swagger-ui.css': { file: 'swagger-ui.css', mime: 'text/css; charset=utf-8' },
+  'swagger-ui-bundle.js': { file: 'swagger-ui-bundle.js', mime: 'application/javascript; charset=utf-8' },
+  'swagger-ui-standalone-preset.js': { file: 'swagger-ui-standalone-preset.js', mime: 'application/javascript; charset=utf-8' }
+};
+
+function renderSwaggerHtml(): string {
+  return `<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>fuma-platform API · Swagger UI</title>
+  <link rel="stylesheet" href="/v1/docs/swagger-ui.css">
+  <style>body{margin:0;background:#fafafa} .topbar{display:none} .swagger-ui .info{margin:24px 0}</style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="/v1/docs/swagger-ui-bundle.js"></script>
+  <script src="/v1/docs/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function () {
+      window.ui = SwaggerUIBundle({
+        url: '/v1/openapi.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        filter: true,
+        tryItOutEnabled: true,
+        presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+        layout: 'StandaloneLayout'
+      });
+    };
+  </script>
+</body>
+</html>`;
+}
+
 interface Route {
   capability: Capability;
   method: string;
   segments: string[];
 }
 
-const PUBLIC_PATHS = new Set(['/v1/health', '/v1/docs', '/v1/openapi.json', '/v1/spec/cli.json', '/v1/spec/mcp.json', '/']);
+const PUBLIC_PATHS = new Set(['/v1/health', '/v1/docs', '/v1/docs/plain', '/v1/openapi.json', '/v1/spec/cli.json', '/v1/spec/mcp.json', '/']);
 
 function tokenMatches(provided: string | undefined, expected: string): boolean {
   if (!provided || !expected) return false;
@@ -112,7 +171,22 @@ export function createRestServer(rt: Runtime, opts: RestOptions = {}): Server {
     try {
       // 特殊路由
       if (pathname === '/' || pathname === '/v1/docs') {
+        sendText(res, 200, 'text/html; charset=utf-8', renderSwaggerHtml());
+        return;
+      }
+      if (pathname === '/v1/docs/plain') {
         sendText(res, 200, 'text/html; charset=utf-8', renderRestDocsHtml(`http://${req.headers.host ?? `${host}:${opts.port ?? rt.config.server.restPort}`}`));
+        return;
+      }
+      if (pathname.startsWith('/v1/docs/')) {
+        const asset = SWAGGER_ASSETS[pathname.slice('/v1/docs/'.length)];
+        const buf = asset ? swaggerAsset(asset.file) : null;
+        if (asset && buf) {
+          res.writeHead(200, { 'content-type': asset.mime, 'content-length': buf.length, 'cache-control': 'public, max-age=86400' });
+          res.end(buf);
+          return;
+        }
+        sendText(res, 404, 'text/plain; charset=utf-8', 'not found');
         return;
       }
       if (pathname === '/v1/openapi.json') { sendJson(res, 200, buildOpenApi()); return; }
@@ -176,8 +250,10 @@ export function startRestServer(rt: Runtime, opts: RestOptions = {}): Promise<{ 
   return new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(port, host, () => {
-      rt.logger.info('REST server started', { host, port, version: VERSION });
-      resolve({ server, url: `http://${host}:${port}` });
+      const address = server.address();
+      const actualPort = address && typeof address === 'object' ? address.port : port;
+      rt.logger.info('REST server started', { host, port: actualPort, version: VERSION });
+      resolve({ server, url: `http://${host}:${actualPort}` });
     });
   });
 }

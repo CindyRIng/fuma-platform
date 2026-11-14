@@ -1,6 +1,6 @@
 {
   "name": "fuma-platform",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "description": "孚盟(fumamx)本地封装平台：多账号会话池 + 请求池 + 本地缓存 + 事件，暴露 CLI/REST/MCP/SKILL",
   "type": "module",
@@ -34,6 +34,7 @@
     "playwright-core": "1.65.0",
     "pngjs": "^7.0.0",
     "qrcode": "^1.5.4",
+    "swagger-ui-dist": "^5.35.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

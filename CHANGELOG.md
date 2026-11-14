@@ -1,3 +1,13 @@
+## [1.0.8] - 2026-11-15
+
+### 标准化 API 文档
+
+- `/v1/docs` 升级为标准 Swagger UI（OpenAPI 3.0.3，本地 swagger-ui-dist，无需外网），支持 Authorize/Try it out/深链/过滤。
+- OpenAPI 规范化：info(contact/license)、servers、tags 描述、operationId、参数（path/query/body）、Envelope/Error schema、401/400/404/409/500 响应、`x-fuma-*` 扩展。
+- 新增 `/v1/docs/plain` 轻量页；`/v1/openapi.json` 可导入 Swagger Editor/Postman。
+- 修复 port=0 时 startRestServer 返回 URL 端口错误；新增 REST 文档集成测试（docs/assets/openapi/401）。
+- 依赖新增 `swagger-ui-dist`。
+
 ## [1.0.7] - 2026-11-15
 
 ### 新增/清理

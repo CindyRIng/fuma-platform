@@ -1,67 +1,92 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.3",
   "info": {
     "title": "fuma-platform API",
-    "version": "1.0.7",
-    "description": "fumamx 本地封装平台 REST API。specVersion=2026-11-15.1。统一 envelope：{ok,data,meta,error}。鉴权：Authorization: Bearer <apiToken>（/v1/health 与 /v1/docs 除外）。"
+    "version": "1.0.8",
+    "summary": "孚盟本地封装平台 REST API（标准 OpenAPI 3.0）",
+    "description": "fuma-platform 是孚盟（fumamx.com）本地封装平台的 REST API。\n\n**统一响应 envelope**：`{ ok, data, meta, error }`；成功 `ok=true`，失败 `ok=false` 且 `error.code` 为业务错误码。\n\n**鉴权**：`Authorization: Bearer <apiToken>`（apiToken 见 `~/.fuma-platform/config.json`）；`/v1/health`、`/v1/docs`、`/v1/openapi.json` 等公开。\n\n**能力与入口**：44 项能力同时映射 CLI / REST / MCP；扩展字段 `x-fuma-*` 给出 CLI/MCP 映射与实现阶段。\n\nspecVersion: 2026-11-15.1；Swagger UI: /v1/docs；OpenAPI JSON: /v1/openapi.json",
+    "contact": {
+      "name": "fuma-platform",
+      "url": "https://github.com/CindyRIng/fuma-platform"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://github.com/CindyRIng/fuma-platform/blob/main/LICENSE"
+    }
   },
   "servers": [
     {
+      "url": "/",
+      "description": "当前服务（相对路径）"
+    },
+    {
       "url": "http://127.0.0.1:17890",
-      "description": "本机 REST"
+      "description": "本机默认 REST 地址"
     }
   ],
   "tags": [
     {
-      "name": "system"
+      "name": "system",
+      "description": "系统与能力发现（健康检查、状态、版本、能力清单）"
     },
     {
-      "name": "account"
+      "name": "account",
+      "description": "账号登记与容量"
     },
     {
-      "name": "session"
+      "name": "session",
+      "description": "登录会话：扫码登录、二维码、心跳、登出（token 加密存储）"
     },
     {
-      "name": "customer"
+      "name": "customer",
+      "description": "客户（客保库）：列表/详情/建档/编辑/删除"
     },
     {
-      "name": "open_sea"
+      "name": "open_sea",
+      "description": "公海：列表、领取（强制先查后领）、释放、冷却"
     },
     {
-      "name": "dedup"
+      "name": "dedup",
+      "description": "查重：单次/历史/批量任务化"
     },
     {
-      "name": "contact"
+      "name": "contact",
+      "description": "联系人：查询与新增"
     },
     {
-      "name": "followup"
+      "name": "followup",
+      "description": "跟进：时间线与新增"
     },
     {
-      "name": "customs"
+      "name": "customs",
+      "description": "海关数据：按公司查询 / 字典 / 本地缓存"
     },
     {
-      "name": "task"
+      "name": "task",
+      "description": "任务：查询/取消/批量任务"
     },
     {
-      "name": "event"
+      "name": "event",
+      "description": "事件：轮询、归档清理"
     },
     {
-      "name": "sync"
+      "name": "sync",
+      "description": "同步与对账：outbox、reconcile、retry"
     }
   ],
   "paths": {
     "/v1/health": {
       "get": {
         "operationId": "system.health",
-        "summary": "服务/数据库/账号在线状态",
-        "description": "返回平台运行状态：版本、spec 版本、运行时长、数据库是否可用、schema 版本、账号总数与在线数。",
+        "summary": "健康检查",
+        "description": "返回平台运行状态：版本、spec 版本、运行时长、数据库是否可用、schema 版本、账号总数与在线数。\n\nCLI: `fuma system health`；MCP: `fuma_system_health`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "system"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -70,8 +95,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -81,28 +146,29 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "system.health",
-          "phase": "P2",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma system health",
-          "mcp": "fuma_system_health"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "system.health",
+        "x-fuma-phase": "P2",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma system health",
+        "x-fuma-mcp": "fuma_system_health",
+        "x-fuma-example": "fuma system health",
+        "security": []
       }
     },
     "/v1/status": {
       "get": {
         "operationId": "system.status",
-        "summary": "账号/池/同步/任务概览",
-        "description": "在健康检查基础上返回账号明细、账号池水位、同步队列与任务统计，用于运维与编排层决策。",
+        "summary": "详细状态",
+        "description": "在健康检查基础上返回账号明细、账号池水位、同步队列与任务统计，用于运维与编排层决策。\n\nCLI: `fuma system status`；MCP: `fuma_system_status`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "system"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -111,8 +177,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -122,28 +228,28 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "system.status",
-          "phase": "P2",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma system status",
-          "mcp": "fuma_system_status"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "system.status",
+        "x-fuma-phase": "P2",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma system status",
+        "x-fuma-mcp": "fuma_system_status",
+        "x-fuma-example": "fuma system status"
       }
     },
     "/v1/version": {
       "get": {
         "operationId": "system.version",
-        "summary": "平台版本与 spec 版本",
-        "description": "返回平台版本、spec 版本、Node 版本与 git 提交（若可用）。",
+        "summary": "版本信息",
+        "description": "返回平台版本、spec 版本、Node 版本与 git 提交（若可用）。\n\nCLI: `fuma system version`；MCP: `fuma_system_version`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "system"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -152,8 +258,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -163,21 +309,21 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "system.version",
-          "phase": "P2",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma system version",
-          "mcp": "fuma_system_version"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "system.version",
+        "x-fuma-phase": "P2",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma system version",
+        "x-fuma-mcp": "fuma_system_version",
+        "x-fuma-example": "fuma system version"
       }
     },
     "/v1/capabilities": {
       "get": {
         "operationId": "system.capabilities",
-        "summary": "列出全部能力（CLI/REST/MCP 映射）",
-        "description": "返回能力注册表：id、标题、说明、参数、CLI 命令、REST 路由、MCP 工具名、实现阶段。用于生成文档与集成。",
+        "summary": "能力清单",
+        "description": "返回能力注册表：id、标题、说明、参数、CLI 命令、REST 路由、MCP 工具名、实现阶段。用于生成文档与集成。\n\nCLI: `fuma system capabilities`；MCP: `fuma_system_capabilities`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "system"
         ],
@@ -199,7 +345,7 @@
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -208,8 +354,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -219,28 +405,28 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "system.capabilities",
-          "phase": "P2",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma system capabilities",
-          "mcp": "fuma_system_capabilities"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "system.capabilities",
+        "x-fuma-phase": "P2",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma system capabilities",
+        "x-fuma-mcp": "fuma_system_capabilities",
+        "x-fuma-example": "fuma system capabilities"
       }
     },
     "/v1/accounts": {
       "get": {
         "operationId": "account.list",
-        "summary": "列出全部账号与容量",
-        "description": "返回账号列表：accountId、名称、业务员（不脱敏）、登录方式、状态、容量上限/已用/剩余、来源。",
+        "summary": "账号列表",
+        "description": "返回账号列表：accountId、名称、业务员（不脱敏）、登录方式、状态、容量上限/已用/剩余、来源。\n\nCLI: `fuma account list`；MCP: `fuma_account_list`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "account"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -249,8 +435,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -260,26 +486,26 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "account.list",
-          "phase": "P2",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma account list",
-          "mcp": "fuma_account_list"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "account.list",
+        "x-fuma-phase": "P2",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma account list",
+        "x-fuma-mcp": "fuma_account_list",
+        "x-fuma-example": "fuma account list"
       },
       "post": {
         "operationId": "account.create",
-        "summary": "登记账号（登录需另行触发）",
-        "description": "登记一个账号（仅本地）：账号 ID、名称、业务员、登录方式、钉钉组织、孚盟企业、可选容量覆盖。",
+        "summary": "新增账号",
+        "description": "登记一个账号（仅本地）：账号 ID、名称、业务员、登录方式、钉钉组织、孚盟企业、可选容量覆盖。\n\nCLI: `fuma account create`；MCP: `fuma_account_create`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "account"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -288,8 +514,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -299,23 +565,28 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "account.create",
-          "phase": "P2",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma account create",
-          "mcp": "fuma_account_create"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "account.create",
+        "x-fuma-phase": "P2",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma account create",
+        "x-fuma-mcp": "fuma_account_create",
+        "x-fuma-example": "fuma account create acct_01 --name \"账号1\"",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
+                  "accountId": {
+                    "description": "账号 ID（如 acct_01）",
+                    "type": "string"
+                  },
                   "name": {
                     "description": "显示名称",
+                    "default": "",
                     "type": "string"
                   },
                   "ownerName": {
@@ -328,6 +599,7 @@
                   },
                   "loginMode": {
                     "description": "登录方式：dingtalk_sso_qr|password_slider_dingtalk|manual_token",
+                    "default": "dingtalk_sso_qr",
                     "type": "string"
                   },
                   "dingtalkOrg": {
@@ -344,9 +616,14 @@
                   },
                   "keepBrowserAlive": {
                     "description": "该账号登录后是否保持浏览器（默认否）",
+                    "default": false,
                     "type": "boolean"
                   }
-                }
+                },
+                "required": [
+                  "accountId"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -356,8 +633,8 @@
     "/v1/accounts/{accountId}": {
       "get": {
         "operationId": "account.get",
-        "summary": "按 ID 查询账号与容量",
-        "description": "返回单个账号详情、会话状态摘要与容量（limit/used/remaining/source）。",
+        "summary": "账号详情",
+        "description": "返回单个账号详情、会话状态摘要与容量（limit/used/remaining/source）。\n\nCLI: `fuma account get`；MCP: `fuma_account_get`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "account"
         ],
@@ -368,12 +645,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 accountId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -382,8 +660,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -393,19 +711,19 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "account.get",
-          "phase": "P2",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma account get",
-          "mcp": "fuma_account_get"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "account.get",
+        "x-fuma-phase": "P2",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma account get",
+        "x-fuma-mcp": "fuma_account_get",
+        "x-fuma-example": "fuma account get acct_01"
       },
       "patch": {
         "operationId": "account.update",
-        "summary": "更新账号属性/状态",
-        "description": "更新账号名称、业务员、登录方式、组织/企业、容量覆盖、状态、是否保持浏览器。",
+        "summary": "更新账号",
+        "description": "更新账号名称、业务员、登录方式、组织/企业、容量覆盖、状态、是否保持浏览器。\n\nCLI: `fuma account update`；MCP: `fuma_account_update`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "account"
         ],
@@ -416,12 +734,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 accountId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -430,8 +749,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -441,14 +800,14 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "account.update",
-          "phase": "P2",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma account update",
-          "mcp": "fuma_account_update"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "account.update",
+        "x-fuma-phase": "P2",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma account update",
+        "x-fuma-mcp": "fuma_account_update",
+        "x-fuma-example": "fuma account update acct_01 --status active",
         "requestBody": {
           "required": false,
           "content": {
@@ -488,7 +847,8 @@
                     "description": "是否保持浏览器",
                     "type": "boolean"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -498,8 +858,8 @@
     "/v1/accounts/{accountId}/capacity": {
       "get": {
         "operationId": "account.capacity",
-        "summary": "容量上限/已用/剩余/来源",
-        "description": "返回账号客保容量：limit（默认 500，按角色 custLimit 规则解析）、used、remaining、source、lastSyncedAt。",
+        "summary": "账号容量",
+        "description": "返回账号客保容量：limit（默认 500，按角色 custLimit 规则解析）、used、remaining、source、lastSyncedAt。\n\nCLI: `fuma account capacity`；MCP: `fuma_account_capacity`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "account"
         ],
@@ -510,12 +870,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 accountId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -524,8 +885,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -535,28 +936,28 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "account.capacity",
-          "phase": "P2",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma account capacity",
-          "mcp": "fuma_account_capacity"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "account.capacity",
+        "x-fuma-phase": "P2",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma account capacity",
+        "x-fuma-mcp": "fuma_account_capacity",
+        "x-fuma-example": "fuma account capacity acct_01"
       }
     },
     "/v1/sessions": {
       "get": {
         "operationId": "session.list",
-        "summary": "全部账号会话状态",
-        "description": "返回各账号会话状态机、token 过期时间、健康度与最近错误。",
+        "summary": "会话列表",
+        "description": "返回各账号会话状态机、token 过期时间、健康度与最近错误。\n\nCLI: `fuma session list`；MCP: `fuma_session_list`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "session"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -565,8 +966,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -576,21 +1017,21 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "session.list",
-          "phase": "P3",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma session list",
-          "mcp": "fuma_session_list"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "session.list",
+        "x-fuma-phase": "P3",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma session list",
+        "x-fuma-mcp": "fuma_session_list",
+        "x-fuma-example": "fuma session list"
       }
     },
     "/v1/accounts/{accountId}/session": {
       "get": {
         "operationId": "session.status",
-        "summary": "单账号会话状态",
-        "description": "返回账号登录状态机当前状态、二维码（如就绪）、token 剩余时间、心跳健康度。",
+        "summary": "会话状态",
+        "description": "返回账号登录状态机当前状态、二维码（如就绪）、token 剩余时间、心跳健康度。\n\nCLI: `fuma session status`；MCP: `fuma_session_status`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "session"
         ],
@@ -601,12 +1042,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 accountId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -615,8 +1057,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -626,21 +1108,21 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "session.status",
-          "phase": "P3",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma session status",
-          "mcp": "fuma_session_status"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "session.status",
+        "x-fuma-phase": "P3",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma session status",
+        "x-fuma-mcp": "fuma_session_status",
+        "x-fuma-example": "fuma session status acct_01"
       }
     },
     "/v1/accounts/{accountId}/session/login": {
       "post": {
         "operationId": "session.login",
-        "summary": "发起扫码/账密登录",
-        "description": "触发账号登录（默认钉钉扫码）。返回当前状态；登录过程需人工扫码时通过 session qr 获取二维码。",
+        "summary": "触发登录",
+        "description": "触发账号登录（默认钉钉扫码）。返回当前状态；登录过程需人工扫码时通过 session qr 获取二维码。\n\nCLI: `fuma session login`；MCP: `fuma_session_login`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "session"
         ],
@@ -651,12 +1133,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 accountId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -665,8 +1148,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -676,14 +1199,14 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "session.login",
-          "phase": "P3",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma session login",
-          "mcp": "fuma_session_login"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "session.login",
+        "x-fuma-phase": "P3",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma session login",
+        "x-fuma-mcp": "fuma_session_login",
+        "x-fuma-example": "fuma session login acct_01",
         "requestBody": {
           "required": false,
           "content": {
@@ -695,7 +1218,8 @@
                     "description": "登录方式（可选，默认按账号配置）",
                     "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -705,8 +1229,8 @@
     "/v1/accounts/{accountId}/session/qr": {
       "get": {
         "operationId": "session.qr",
-        "summary": "解码重编码后的登录二维码",
-        "description": "返回钉钉登录二维码：payload、pngBase64、过期时间、刷新次数；CLI 会同时打印终端二维码。",
+        "summary": "获取二维码",
+        "description": "返回钉钉登录二维码：payload、pngBase64、过期时间、刷新次数；CLI 会同时打印终端二维码。\n\nCLI: `fuma session qr`；MCP: `fuma_session_qr`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "session"
         ],
@@ -717,12 +1241,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 accountId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -731,8 +1256,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -742,21 +1307,21 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "session.qr",
-          "phase": "P3",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma session qr",
-          "mcp": "fuma_session_qr"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "session.qr",
+        "x-fuma-phase": "P3",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma session qr",
+        "x-fuma-mcp": "fuma_session_qr",
+        "x-fuma-example": "fuma session qr acct_01"
       }
     },
     "/v1/accounts/{accountId}/session/cancel": {
       "post": {
         "operationId": "session.cancel",
-        "summary": "取消进行中的登录",
-        "description": "取消当前账号进行中的登录流程并清理二维码状态。",
+        "summary": "取消登录",
+        "description": "取消当前账号进行中的登录流程并清理二维码状态。\n\nCLI: `fuma session cancel`；MCP: `fuma_session_cancel`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "session"
         ],
@@ -767,12 +1332,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 accountId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -781,8 +1347,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -792,21 +1398,21 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "session.cancel",
-          "phase": "P3",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma session cancel",
-          "mcp": "fuma_session_cancel"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "session.cancel",
+        "x-fuma-phase": "P3",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma session cancel",
+        "x-fuma-mcp": "fuma_session_cancel",
+        "x-fuma-example": "fuma session cancel acct_01"
       }
     },
     "/v1/accounts/{accountId}/session/logout": {
       "post": {
         "operationId": "session.logout",
-        "summary": "清除本地会话",
-        "description": "清除账号本地 token/会话（不会强制上游下线）。",
+        "summary": "登出",
+        "description": "清除账号本地 token/会话（不会强制上游下线）。\n\nCLI: `fuma session logout`；MCP: `fuma_session_logout`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "session"
         ],
@@ -817,12 +1423,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 accountId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -831,8 +1438,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -842,21 +1489,21 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "session.logout",
-          "phase": "P3",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma session logout",
-          "mcp": "fuma_session_logout"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "session.logout",
+        "x-fuma-phase": "P3",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma session logout",
+        "x-fuma-mcp": "fuma_session_logout",
+        "x-fuma-example": "fuma session logout acct_01"
       }
     },
     "/v1/accounts/{accountId}/session/heartbeat": {
       "post": {
         "operationId": "session.heartbeat",
-        "summary": "轻量保活探针（personalsettingGet）",
-        "description": "调用上游轻量只读接口探测会话有效性；记录延迟与健康状态，session_expired 时标记账号过期。",
+        "summary": "会话心跳",
+        "description": "调用上游轻量只读接口探测会话有效性；记录延迟与健康状态，session_expired 时标记账号过期。\n\nCLI: `fuma session heartbeat`；MCP: `fuma_session_heartbeat`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "session"
         ],
@@ -867,12 +1514,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 accountId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -881,8 +1529,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -892,28 +1580,28 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "session.heartbeat",
-          "phase": "P3",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma session heartbeat",
-          "mcp": "fuma_session_heartbeat"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "session.heartbeat",
+        "x-fuma-phase": "P3",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma session heartbeat",
+        "x-fuma-mcp": "fuma_session_heartbeat",
+        "x-fuma-example": "fuma session heartbeat acct_01"
       }
     },
     "/v1/customers/list": {
       "post": {
         "operationId": "customer.list",
-        "summary": "分页/筛选/排序查询客户",
-        "description": "客户列表（默认本地缓存优先）。支持 filters（字段_操作符，见文档筛选 DSL）与 systemSelection 预置筛选、分页、排序。",
+        "summary": "客户列表",
+        "description": "客户列表（默认本地缓存优先）。支持 filters（字段_操作符，见文档筛选 DSL）与 systemSelection 预置筛选、分页、排序。\n\nCLI: `fuma customer list`；MCP: `fuma_customer_list`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "customer"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -922,8 +1610,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -933,14 +1661,14 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "customer.list",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma customer list",
-          "mcp": "fuma_customer_list"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "customer.list",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma customer list",
+        "x-fuma-mcp": "fuma_customer_list",
+        "x-fuma-example": "fuma customer list --page 1 --page-size 20",
         "requestBody": {
           "required": false,
           "content": {
@@ -964,10 +1692,12 @@
                   },
                   "page": {
                     "description": "页码（从 1 开始）",
+                    "default": 1,
                     "type": "number"
                   },
                   "pageSize": {
                     "description": "每页条数（默认 20）",
+                    "default": 20,
                     "type": "number"
                   },
                   "sort": {
@@ -976,9 +1706,11 @@
                   },
                   "fresh": {
                     "description": "强制上游刷新",
+                    "default": false,
                     "type": "boolean"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -988,8 +1720,8 @@
     "/v1/customers/{customerId}": {
       "get": {
         "operationId": "customer.get",
-        "summary": "单个客户详情与保护状态",
-        "description": "客户详情（本地缓存优先，fresh=true 强制上游）：基础信息 + 主联系人 + 归属/保护状态。",
+        "summary": "客户详情",
+        "description": "客户详情（本地缓存优先，fresh=true 强制上游）：基础信息 + 主联系人 + 归属/保护状态。\n\nCLI: `fuma customer get`；MCP: `fuma_customer_get`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "customer"
         ],
@@ -1000,7 +1732,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 customerId"
           },
           {
             "name": "accountId",
@@ -1014,12 +1747,13 @@
             "in": "query",
             "required": false,
             "description": "强制上游",
+            "default": false,
             "type": "boolean"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1028,8 +1762,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1039,19 +1813,19 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "customer.get",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma customer get",
-          "mcp": "fuma_customer_get"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "customer.get",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma customer get",
+        "x-fuma-mcp": "fuma_customer_get",
+        "x-fuma-example": "fuma customer get 873590689807446016"
       },
       "patch": {
         "operationId": "customer.update",
-        "summary": "本地优先编辑并异步同步",
-        "description": "客户字段级更新：本地先事实 + outbox；冲突最终收敛上游（sync.conflict 事件）。",
+        "summary": "客户编辑",
+        "description": "客户字段级更新：本地先事实 + outbox；冲突最终收敛上游（sync.conflict 事件）。\n\nCLI: `fuma customer update`；MCP: `fuma_customer_update`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "customer"
         ],
@@ -1062,12 +1836,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 customerId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1076,8 +1851,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1087,16 +1902,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "customer.update",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma customer update",
-          "mcp": "fuma_customer_update"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "customer.update",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma customer update",
+        "x-fuma-mcp": "fuma_customer_update",
+        "x-fuma-example": "fuma customer update --account acct_01 873590689807446016 --data '{\"remarks\":\"x\"}'",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1115,7 +1930,12 @@
                     "description": "幂等键",
                     "type": "string"
                   }
-                }
+                },
+                "required": [
+                  "accountId",
+                  "data"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1123,8 +1943,8 @@
       },
       "delete": {
         "operationId": "customer.delete",
-        "summary": "删除（软删进回收站）",
-        "description": "删除指定客户（上游软删进回收站），需要 accountId。",
+        "summary": "客户删除",
+        "description": "删除指定客户（上游软删进回收站），需要 accountId。\n\nCLI: `fuma customer delete`；MCP: `fuma_customer_delete`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "customer"
         ],
@@ -1135,12 +1955,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 customerId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1149,8 +1970,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1160,16 +2021,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "customer.delete",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma customer delete",
-          "mcp": "fuma_customer_delete"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "customer.delete",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma customer delete",
+        "x-fuma-mcp": "fuma_customer_delete",
+        "x-fuma-example": "fuma customer delete --account acct_01 873590689807446016",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1183,7 +2044,11 @@
                     "description": "幂等键",
                     "type": "string"
                   }
-                }
+                },
+                "required": [
+                  "accountId"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1193,15 +2058,15 @@
     "/v1/customers": {
       "post": {
         "operationId": "customer.create",
-        "summary": "本地优先建档并异步同步上游",
-        "description": "客户建档：本地事务写事实 + outbox，立即返回 syncState=pending；异步同步上游。需要 accountId。",
+        "summary": "客户建档",
+        "description": "客户建档：本地事务写事实 + outbox，立即返回 syncState=pending；异步同步上游。需要 accountId。\n\nCLI: `fuma customer create`；MCP: `fuma_customer_create`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "customer"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1210,8 +2075,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1221,16 +2126,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "customer.create",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma customer create",
-          "mcp": "fuma_customer_create"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "customer.create",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma customer create",
+        "x-fuma-mcp": "fuma_customer_create",
+        "x-fuma-example": "fuma customer create --account acct_01 --data '{\"custName\":\"ZZ_TEST_X\"}'",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1249,7 +2154,12 @@
                     "description": "幂等键",
                     "type": "string"
                   }
-                }
+                },
+                "required": [
+                  "accountId",
+                  "data"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1259,15 +2169,15 @@
     "/v1/open-sea/list": {
       "post": {
         "operationId": "open_sea.list",
-        "summary": "公海客户分页/筛选",
-        "description": "公海客户列表（seasFlag=1），支持分页、筛选、预置筛选；本地缓存优先。",
+        "summary": "公海列表",
+        "description": "公海客户列表（seasFlag=1），支持分页、筛选、预置筛选；本地缓存优先。\n\nCLI: `fuma open-sea list`；MCP: `fuma_open_sea_list`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "open_sea"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1276,8 +2186,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1287,14 +2237,14 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "open_sea.list",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma open-sea list",
-          "mcp": "fuma_open_sea_list"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "open_sea.list",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma open-sea list",
+        "x-fuma-mcp": "fuma_open_sea_list",
+        "x-fuma-example": "fuma open-sea list --page 1",
         "requestBody": {
           "required": false,
           "content": {
@@ -1313,17 +2263,21 @@
                   },
                   "page": {
                     "description": "页码",
+                    "default": 1,
                     "type": "number"
                   },
                   "pageSize": {
                     "description": "每页条数",
+                    "default": 20,
                     "type": "number"
                   },
                   "fresh": {
                     "description": "强制上游",
+                    "default": false,
                     "type": "boolean"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -1333,8 +2287,8 @@
     "/v1/open-sea/{customerId}/claim": {
       "post": {
         "operationId": "open_sea.claim",
-        "summary": "强制查重 + 容量/冷却校验后领取",
-        "description": "领取公海客户：强制先查后领（命中→duplicate_customer）；校验容量（按角色规则）、释放冷却（默认 3 天）、公海状态；本地 pending → 上游 doBatchReceive。",
+        "summary": "领取公海客户",
+        "description": "领取公海客户：强制先查后领（命中→duplicate_customer）；校验容量（按角色规则）、释放冷却（默认 3 天）、公海状态；本地 pending → 上游 doBatchReceive。\n\nCLI: `fuma open-sea claim`；MCP: `fuma_open_sea_claim`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "open_sea"
         ],
@@ -1345,12 +2299,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 customerId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1359,8 +2314,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1370,16 +2365,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "open_sea.claim",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma open-sea claim",
-          "mcp": "fuma_open_sea_claim"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "open_sea.claim",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma open-sea claim",
+        "x-fuma-mcp": "fuma_open_sea_claim",
+        "x-fuma-example": "fuma open-sea claim --account acct_01 873590689807446016 --idempotency-key ...",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1393,7 +2388,11 @@
                     "description": "幂等键（建议 UUID）",
                     "type": "string"
                   }
-                }
+                },
+                "required": [
+                  "accountId"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1403,8 +2402,8 @@
     "/v1/open-sea/{customerId}/release": {
       "post": {
         "operationId": "open_sea.release",
-        "summary": "释放（本地优先 → doPutSeas）",
-        "description": "把客户放回公海：本地标记 pending → 上游 doPutSeas/doBatchPutSeas；记录释放时间用于 3 天冷却。",
+        "summary": "释放客户到公海",
+        "description": "把客户放回公海：本地标记 pending → 上游 doPutSeas/doBatchPutSeas；记录释放时间用于 3 天冷却。\n\nCLI: `fuma open-sea release`；MCP: `fuma_open_sea_release`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "open_sea"
         ],
@@ -1415,12 +2414,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 customerId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1429,8 +2429,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1440,16 +2480,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "open_sea.release",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma open-sea release",
-          "mcp": "fuma_open_sea_release"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "open_sea.release",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma open-sea release",
+        "x-fuma-mcp": "fuma_open_sea_release",
+        "x-fuma-example": "fuma open-sea release --account acct_01 873590689807446016",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1467,7 +2507,11 @@
                     "description": "幂等键",
                     "type": "string"
                   }
-                }
+                },
+                "required": [
+                  "accountId"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1477,15 +2521,15 @@
     "/v1/dedup/check": {
       "post": {
         "operationId": "dedup.check",
-        "summary": "按关键词查重（公司/联系人/电话等）",
-        "description": "调用上游 repeat/check，返回命中数量；结果落本地快照。",
+        "summary": "单条查重",
+        "description": "调用上游 repeat/check，返回命中数量；结果落本地快照。\n\nCLI: `fuma dedup check`；MCP: `fuma_dedup_check`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "dedup"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1494,8 +2538,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1505,16 +2589,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "dedup.check",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma dedup check",
-          "mcp": "fuma_dedup_check"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "dedup.check",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma dedup check",
+        "x-fuma-mcp": "fuma_dedup_check",
+        "x-fuma-example": "fuma dedup check \"河北高迪管道设备制造有限公司\"",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1524,11 +2608,20 @@
                     "description": "账号 ID",
                     "type": "string"
                   },
+                  "keywords": {
+                    "description": "关键词",
+                    "type": "string"
+                  },
                   "moduleCode": {
                     "description": "模块（默认 NewBF001）",
+                    "default": "NewBF001",
                     "type": "string"
                   }
-                }
+                },
+                "required": [
+                  "keywords"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1538,15 +2631,15 @@
     "/v1/dedup/batch": {
       "post": {
         "operationId": "dedup.batch",
-        "summary": "批量查重（任务化，≤200/批）",
-        "description": "批量查重任务：分片调用上游，结果逐条落库；返回 taskId 供轮询。",
+        "summary": "批量查重",
+        "description": "批量查重任务：分片调用上游，结果逐条落库；返回 taskId 供轮询。\n\nCLI: `fuma dedup batch`；MCP: `fuma_dedup_batch`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "dedup"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1555,8 +2648,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1566,16 +2699,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "dedup.batch",
-          "phase": "P5",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma dedup batch",
-          "mcp": "fuma_dedup_batch"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "dedup.batch",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma dedup batch",
+        "x-fuma-mcp": "fuma_dedup_batch",
+        "x-fuma-example": "fuma dedup batch --keywords '[\"公司A\",\"公司B\"]'",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1592,9 +2725,14 @@
                   },
                   "chunkSize": {
                     "description": "分片大小（默认 200）",
+                    "default": 200,
                     "type": "number"
                   }
-                }
+                },
+                "required": [
+                  "keywords"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1604,8 +2742,8 @@
     "/v1/dedup/history": {
       "get": {
         "operationId": "dedup.history",
-        "summary": "近期查重记录",
-        "description": "查询查重历史（上游 getHistory + 本地快照）。",
+        "summary": "查重历史",
+        "description": "查询查重历史（上游 getHistory + 本地快照）。\n\nCLI: `fuma dedup history`；MCP: `fuma_dedup_history`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "dedup"
         ],
@@ -1622,6 +2760,7 @@
             "in": "query",
             "required": false,
             "description": "模块",
+            "default": "NewBF001",
             "type": "string"
           },
           {
@@ -1629,12 +2768,13 @@
             "in": "query",
             "required": false,
             "description": "条数",
+            "default": 5,
             "type": "number"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1643,8 +2783,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1654,28 +2834,28 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "dedup.history",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma dedup history",
-          "mcp": "fuma_dedup_history"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "dedup.history",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma dedup history",
+        "x-fuma-mcp": "fuma_dedup_history",
+        "x-fuma-example": "fuma dedup history"
       }
     },
     "/v1/contacts/list": {
       "post": {
         "operationId": "contact.list",
-        "summary": "按客户查询联系人",
-        "description": "联系人列表（客户详情 subBill 方式），支持分页与 fresh 强制上游。",
+        "summary": "联系人列表",
+        "description": "联系人列表（客户详情 subBill 方式），支持分页与 fresh 强制上游。\n\nCLI: `fuma contact list`；MCP: `fuma_contact_list`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "contact"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1684,8 +2864,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1695,14 +2915,14 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "contact.list",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma contact list",
-          "mcp": "fuma_contact_list"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "contact.list",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma contact list",
+        "x-fuma-mcp": "fuma_contact_list",
+        "x-fuma-example": "fuma contact list --customer 873590689807446016",
         "requestBody": {
           "required": false,
           "content": {
@@ -1720,17 +2940,21 @@
                   },
                   "page": {
                     "description": "页码",
+                    "default": 1,
                     "type": "number"
                   },
                   "pageSize": {
                     "description": "每页条数",
+                    "default": 20,
                     "type": "number"
                   },
                   "fresh": {
                     "description": "强制上游刷新",
+                    "default": false,
                     "type": "boolean"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -1740,15 +2964,15 @@
     "/v1/contacts": {
       "post": {
         "operationId": "contact.create",
-        "summary": "本地优先创建联系人",
-        "description": "为指定客户创建联系人（本地先事实 + outbox → 上游 edit_customer 提交 master.contacts；已实测）。",
+        "summary": "新建联系人",
+        "description": "为指定客户创建联系人（本地先事实 + outbox → 上游 edit_customer 提交 master.contacts；已实测）。\n\nCLI: `fuma contact create`；MCP: `fuma_contact_create`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "contact"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1757,8 +2981,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1768,16 +3032,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "contact.create",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma contact create",
-          "mcp": "fuma_contact_create"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "contact.create",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma contact create",
+        "x-fuma-mcp": "fuma_contact_create",
+        "x-fuma-example": "fuma contact create --account acct_01 --customer <id> --data '{\"contName\":\"张三\"}'",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1796,7 +3060,13 @@
                     "type": "object",
                     "additionalProperties": true
                   }
-                }
+                },
+                "required": [
+                  "accountId",
+                  "customerId",
+                  "data"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1806,8 +3076,8 @@
     "/v1/contacts/{contactId}": {
       "patch": {
         "operationId": "contact.update",
-        "summary": "编辑联系人（本地优先）",
-        "description": "编辑联系人字段；本地先事实 + outbox。",
+        "summary": "编辑联系人",
+        "description": "编辑联系人字段；本地先事实 + outbox。\n\nCLI: `fuma contact update`；MCP: `fuma_contact_update`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "contact"
         ],
@@ -1818,12 +3088,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 contactId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1832,8 +3103,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1843,16 +3154,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "contact.update",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": false,
-          "cli": "fuma contact update",
-          "mcp": "fuma_contact_update"
-        },
+        "deprecated": true,
+        "x-fuma-capability": "contact.update",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": false,
+        "x-fuma-cli": "fuma contact update",
+        "x-fuma-mcp": "fuma_contact_update",
+        "x-fuma-example": "fuma contact update --account acct_01 <id> --data '{\"position\":\"采购\"}'",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1867,7 +3178,12 @@
                     "type": "object",
                     "additionalProperties": true
                   }
-                }
+                },
+                "required": [
+                  "accountId",
+                  "data"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1877,15 +3193,15 @@
     "/v1/followups/list": {
       "post": {
         "operationId": "followup.list",
-        "summary": "跟进记录分页/筛选",
-        "description": "跟进记录列表（moduleCode=NewBF004），支持按客户/分页/筛选。",
+        "summary": "跟进列表",
+        "description": "跟进记录列表（moduleCode=NewBF004），支持按客户/分页/筛选。\n\nCLI: `fuma followup list`；MCP: `fuma_followup_list`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "followup"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1894,8 +3210,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1905,14 +3261,14 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "followup.list",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma followup list",
-          "mcp": "fuma_followup_list"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "followup.list",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma followup list",
+        "x-fuma-mcp": "fuma_followup_list",
+        "x-fuma-example": "fuma followup list --customer <id>",
         "requestBody": {
           "required": false,
           "content": {
@@ -1930,13 +3286,16 @@
                   },
                   "page": {
                     "description": "页码",
+                    "default": 1,
                     "type": "number"
                   },
                   "pageSize": {
                     "description": "每页条数",
+                    "default": 20,
                     "type": "number"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -1946,15 +3305,15 @@
     "/v1/followups": {
       "post": {
         "operationId": "followup.create",
-        "summary": "本地优先新建跟进",
-        "description": "新建跟进记录（内容/方式/时间/关联联系人）：本地先事实 + outbox → 上游；成功后更新客户保护期相关字段。",
+        "summary": "新建跟进",
+        "description": "新建跟进记录（内容/方式/时间/关联联系人）：本地先事实 + outbox → 上游；成功后更新客户保护期相关字段。\n\nCLI: `fuma followup create`；MCP: `fuma_followup_create`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "followup"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1963,8 +3322,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1974,16 +3373,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "followup.create",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma followup create",
-          "mcp": "fuma_followup_create"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "followup.create",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma followup create",
+        "x-fuma-mcp": "fuma_followup_create",
+        "x-fuma-example": "fuma followup create --account acct_01 --customer <id> --content \"电话沟通\"",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -2017,7 +3416,13 @@
                     "description": "关联联系人 ID",
                     "type": "string"
                   }
-                }
+                },
+                "required": [
+                  "accountId",
+                  "customerId",
+                  "content"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -2027,15 +3432,15 @@
     "/v1/customs/query": {
       "post": {
         "operationId": "customs.query",
-        "summary": "按公司查询贸易数据（本地缓存）",
-        "description": "MVP 仅按公司查询（tradeList 公司维度）。强制本地缓存：命中不发上游请求；支持 forceRefresh/allowStale；权限域隔离。",
+        "summary": "海关公司查询",
+        "description": "MVP 仅按公司查询（tradeList 公司维度）。强制本地缓存：命中不发上游请求；支持 forceRefresh/allowStale；权限域隔离。\n\nCLI: `fuma customs query`；MCP: `fuma_customs_query`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "customs"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2044,8 +3449,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2055,16 +3500,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "customs.query",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma customs query",
-          "mcp": "fuma_customs_query"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "customs.query",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma customs query",
+        "x-fuma-mcp": "fuma_customs_query",
+        "x-fuma-example": "fuma customs query \"Ningbo\" --page 1 --page-size 20",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -2074,27 +3519,40 @@
                     "description": "账号 ID（建议，用于权限校验）",
                     "type": "string"
                   },
+                  "inputCompany": {
+                    "description": "公司关键词（≥2 字符）",
+                    "type": "string"
+                  },
                   "companyFlag": {
                     "description": "1=进口 2=出口（默认 1）",
+                    "default": 1,
                     "type": "number"
                   },
                   "page": {
                     "description": "页码",
+                    "default": 1,
                     "type": "number"
                   },
                   "pageSize": {
                     "description": "每页条数",
+                    "default": 20,
                     "type": "number"
                   },
                   "forceRefresh": {
                     "description": "跳过缓存强制上游",
+                    "default": false,
                     "type": "boolean"
                   },
                   "allowStale": {
                     "description": "上游失败时允许 stale 缓存",
+                    "default": true,
                     "type": "boolean"
                   }
-                }
+                },
+                "required": [
+                  "inputCompany"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -2104,8 +3562,8 @@
     "/v1/customs/dictionaries": {
       "get": {
         "operationId": "customs.dictionaries",
-        "summary": "国家/HS/数据源字典",
-        "description": "返回海关字典：国家列表、HS 编码、数据源导入导出统计、更新日志；本地缓存 TTL 7 天。",
+        "summary": "海关字典",
+        "description": "返回海关字典：国家列表、HS 编码、数据源导入导出统计、更新日志；本地缓存 TTL 7 天。\n\nCLI: `fuma customs dictionaries`；MCP: `fuma_customs_dictionaries`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "customs"
         ],
@@ -2122,12 +3580,13 @@
             "in": "query",
             "required": false,
             "description": "字典类型：countries|hscode|sources|updatelog",
+            "default": "countries",
             "type": "string"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2136,8 +3595,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2147,28 +3646,28 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "customs.dictionaries",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma customs dictionaries",
-          "mcp": "fuma_customs_dictionaries"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "customs.dictionaries",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma customs dictionaries",
+        "x-fuma-mcp": "fuma_customs_dictionaries",
+        "x-fuma-example": "fuma customs dictionaries --kind countries"
       }
     },
     "/v1/customs/cache/stats": {
       "get": {
         "operationId": "customs.cache.stats",
-        "summary": "命中率/条目/占用",
-        "description": "返回海关本地缓存统计：条目数、字节数、命中率、最近刷新时间。",
+        "summary": "海关缓存统计",
+        "description": "返回海关本地缓存统计：条目数、字节数、命中率、最近刷新时间。\n\nCLI: `fuma customs cache-stats`；MCP: `fuma_customs_cache-stats`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "customs"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2177,8 +3676,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2188,28 +3727,28 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "customs.cache.stats",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma customs cache-stats",
-          "mcp": "fuma_customs_cache-stats"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "customs.cache.stats",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma customs cache-stats",
+        "x-fuma-mcp": "fuma_customs_cache-stats",
+        "x-fuma-example": "fuma customs cache-stats"
       }
     },
     "/v1/customs/cache/purge": {
       "post": {
         "operationId": "customs.cache.purge",
-        "summary": "按条件清理缓存",
-        "description": "清理海关本地缓存：可按 queryType/公司关键词/时间范围；默认清全部过期或指定条件。",
+        "summary": "清理海关缓存",
+        "description": "清理海关本地缓存：可按 queryType/公司关键词/时间范围；默认清全部过期或指定条件。\n\nCLI: `fuma customs cache-purge`；MCP: `fuma_customs_cache-purge`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "customs"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2218,8 +3757,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2229,14 +3808,14 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "customs.cache.purge",
-          "phase": "P4",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma customs cache-purge",
-          "mcp": "fuma_customs_cache-purge"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "customs.cache.purge",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma customs cache-purge",
+        "x-fuma-mcp": "fuma_customs_cache-purge",
+        "x-fuma-example": "fuma customs cache-purge --query-type company",
         "requestBody": {
           "required": false,
           "content": {
@@ -2256,7 +3835,8 @@
                     "description": "清理该时间之前的缓存",
                     "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -2266,8 +3846,8 @@
     "/v1/tasks/{taskId}": {
       "get": {
         "operationId": "task.get",
-        "summary": "任务状态/进度/结果",
-        "description": "查询任务状态、进度、结果或错误；支持结果分页读取（task.results）。",
+        "summary": "任务详情",
+        "description": "查询任务状态、进度、结果或错误；支持结果分页读取（task.results）。\n\nCLI: `fuma task get`；MCP: `fuma_task_get`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "task"
         ],
@@ -2278,12 +3858,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 taskId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2292,8 +3873,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2303,21 +3924,21 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "task.get",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma task get",
-          "mcp": "fuma_task_get"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "task.get",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma task get",
+        "x-fuma-mcp": "fuma_task_get",
+        "x-fuma-example": "fuma task get task_abc"
       }
     },
     "/v1/tasks/{taskId}/cancel": {
       "post": {
         "operationId": "task.cancel",
-        "summary": "取消排队/运行中的任务",
-        "description": "取消任务（queued/running），已完成的不能取消。",
+        "summary": "取消任务",
+        "description": "取消任务（queued/running），已完成的不能取消。\n\nCLI: `fuma task cancel`；MCP: `fuma_task_cancel`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "task"
         ],
@@ -2328,12 +3949,13 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "路径参数 taskId"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2342,8 +3964,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2353,21 +4015,21 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "task.cancel",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma task cancel",
-          "mcp": "fuma_task_cancel"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "task.cancel",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma task cancel",
+        "x-fuma-mcp": "fuma_task_cancel",
+        "x-fuma-example": "fuma task cancel task_abc"
       }
     },
     "/v1/tasks": {
       "get": {
         "operationId": "task.list",
-        "summary": "按状态/类型列出任务",
-        "description": "任务列表：支持状态、类型、分页过滤。",
+        "summary": "任务列表",
+        "description": "任务列表：支持状态、类型、分页过滤。\n\nCLI: `fuma task list`；MCP: `fuma_task_list`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "task"
         ],
@@ -2391,6 +4053,7 @@
             "in": "query",
             "required": false,
             "description": "页码",
+            "default": 1,
             "type": "number"
           },
           {
@@ -2398,12 +4061,13 @@
             "in": "query",
             "required": false,
             "description": "每页条数",
+            "default": 20,
             "type": "number"
           }
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2412,8 +4076,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2423,21 +4127,21 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "task.list",
-          "phase": "P4",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma task list",
-          "mcp": "fuma_task_list"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "task.list",
+        "x-fuma-phase": "P4",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma task list",
+        "x-fuma-mcp": "fuma_task_list",
+        "x-fuma-example": "fuma task list --status running"
       }
     },
     "/v1/events": {
       "get": {
         "operationId": "event.list",
-        "summary": "按序号轮询事件（sinceSeq）",
-        "description": "轮询事件：sinceSeq 之后的事件列表（eventId/seq/type/payload）；消费方按 eventId+seq 幂等。",
+        "summary": "事件查询",
+        "description": "轮询事件：sinceSeq 之后的事件列表（eventId/seq/type/payload）；消费方按 eventId+seq 幂等。\n\nCLI: `fuma event list`；MCP: `fuma_event_list`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "event"
         ],
@@ -2447,6 +4151,7 @@
             "in": "query",
             "required": false,
             "description": "起始序号（不含）",
+            "default": 0,
             "type": "number"
           },
           {
@@ -2454,6 +4159,7 @@
             "in": "query",
             "required": false,
             "description": "最多条数",
+            "default": 100,
             "type": "number"
           },
           {
@@ -2466,7 +4172,7 @@
         ],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2475,8 +4181,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2486,28 +4232,28 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "event.list",
-          "phase": "P5",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma event list",
-          "mcp": "fuma_event_list"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "event.list",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma event list",
+        "x-fuma-mcp": "fuma_event_list",
+        "x-fuma-example": "fuma event list --since-seq 0"
       }
     },
     "/v1/events/purge": {
       "post": {
         "operationId": "event.purge",
-        "summary": "按类型与时间归档并删除历史事件",
-        "description": "归档/清理历史事件：默认删除 30 天前事件；可按类型过滤、先写 JSONL 归档、dryRun 预览。",
+        "summary": "事件归档/清理",
+        "description": "归档/清理历史事件：默认删除 30 天前事件；可按类型过滤、先写 JSONL 归档、dryRun 预览。\n\nCLI: `fuma event purge`；MCP: `fuma_event_purge`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "event"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2516,8 +4262,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2527,14 +4313,14 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "event.purge",
-          "phase": "P6",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma event purge",
-          "mcp": "fuma_event_purge"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "event.purge",
+        "x-fuma-phase": "P6",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma event purge",
+        "x-fuma-mcp": "fuma_event_purge",
+        "x-fuma-example": "fuma event purge --types sync.conflict --older-than-days 0 --archive ~/.fuma-platform/backups/events.jsonl",
         "requestBody": {
           "required": false,
           "content": {
@@ -2544,6 +4330,7 @@
                 "properties": {
                   "olderThanDays": {
                     "description": "删除早于 N 天的事件（0=删除全部早于当前时刻）",
+                    "default": 30,
                     "type": "number"
                   },
                   "before": {
@@ -2560,9 +4347,11 @@
                   },
                   "dryRun": {
                     "description": "只统计不删除",
+                    "default": false,
                     "type": "boolean"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -2572,15 +4361,15 @@
     "/v1/sync/status": {
       "get": {
         "operationId": "sync.status",
-        "summary": "outbox/对账状态",
-        "description": "同步状态：outbox 队列、失败明细、最近对账时间、差异数。",
+        "summary": "同步状态",
+        "description": "同步状态：outbox 队列、失败明细、最近对账时间、差异数。\n\nCLI: `fuma sync status`；MCP: `fuma_sync_status`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "sync"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2589,8 +4378,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2600,28 +4429,28 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "sync.status",
-          "phase": "P5",
-          "mutating": false,
-          "implemented": true,
-          "cli": "fuma sync status",
-          "mcp": "fuma_sync_status"
-        }
+        "deprecated": false,
+        "x-fuma-capability": "sync.status",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": false,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma sync status",
+        "x-fuma-mcp": "fuma_sync_status",
+        "x-fuma-example": "fuma sync status"
       }
     },
     "/v1/sync/reconcile": {
       "post": {
         "operationId": "sync.reconcile",
-        "summary": "拉取上游增量并收敛",
-        "description": "触发对账任务（可选 accountId）：拉取上游事实、diff、收敛到上游、发 sync.conflict 事件。",
+        "summary": "触发对账",
+        "description": "触发对账任务（可选 accountId）：拉取上游事实、diff、收敛到上游、发 sync.conflict 事件。\n\nCLI: `fuma sync reconcile`；MCP: `fuma_sync_reconcile`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "sync"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2630,8 +4459,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2641,14 +4510,14 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "sync.reconcile",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma sync reconcile",
-          "mcp": "fuma_sync_reconcile"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "sync.reconcile",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma sync reconcile",
+        "x-fuma-mcp": "fuma_sync_reconcile",
+        "x-fuma-example": "fuma sync reconcile --scope customers",
         "requestBody": {
           "required": false,
           "content": {
@@ -2662,9 +4531,11 @@
                   },
                   "scope": {
                     "description": "范围：customers|open_sea|followups|capacity",
+                    "default": "customers",
                     "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -2674,15 +4545,15 @@
     "/v1/sync/outbox/retry": {
       "post": {
         "operationId": "sync.retry",
-        "summary": "手动重试失败的同步项",
-        "description": "手动重试指定的 outbox 项（失败/重试耗尽）。",
+        "summary": "重试 outbox",
+        "description": "手动重试指定的 outbox 项（失败/重试耗尽）。\n\nCLI: `fuma sync retry`；MCP: `fuma_sync_retry`。\n\n统一响应 envelope：`{ok,data,meta,error}`；失败时 `ok=false` 且 `error.code` 为业务错误码。",
         "tags": [
           "sync"
         ],
         "parameters": [],
         "responses": {
           "200": {
-            "description": "成功（统一 envelope）",
+            "description": "成功（envelope.ok=true）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2691,8 +4562,48 @@
               }
             }
           },
-          "4XX": {
-            "description": "业务错误（envelope.ok=false）",
+          "400": {
+            "description": "参数错误（invalid_argument）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未鉴权或 token 无效（unauthorized）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在（not_found）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态冲突（conflict）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误（internal_error）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2702,16 +4613,16 @@
             }
           }
         },
-        "x-fuma": {
-          "capability": "sync.retry",
-          "phase": "P5",
-          "mutating": true,
-          "implemented": true,
-          "cli": "fuma sync retry",
-          "mcp": "fuma_sync_retry"
-        },
+        "deprecated": false,
+        "x-fuma-capability": "sync.retry",
+        "x-fuma-phase": "P5",
+        "x-fuma-mutating": true,
+        "x-fuma-implemented": true,
+        "x-fuma-cli": "fuma sync retry",
+        "x-fuma-mcp": "fuma_sync_retry",
+        "x-fuma-example": "fuma sync retry --outbox-id 12",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -2721,7 +4632,11 @@
                     "description": "outbox ID",
                     "type": "number"
                   }
-                }
+                },
+                "required": [
+                  "outboxId"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -2729,10 +4644,66 @@
       }
     }
   },
+  "externalDocs": {
+    "description": "项目文档",
+    "url": "https://github.com/CindyRIng/fuma-platform/blob/main/docs/README.md"
+  },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "apiToken",
+        "description": "REST apiToken（Authorization: Bearer <token>）"
+      }
+    },
     "schemas": {
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "specVersion": {
+            "type": "string"
+          },
+          "durationMs": {
+            "type": "number"
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "业务错误码，如 invalid_argument / unauthorized / not_found / conflict / upstream_error"
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "retryAfterMs": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
       "Envelope": {
         "type": "object",
+        "description": "统一响应 envelope",
         "required": [
           "ok",
           "data",
@@ -2744,53 +4715,16 @@
             "type": "boolean"
           },
           "data": {
-            "nullable": true
+            "nullable": true,
+            "description": "业务数据（各能力不同；失败时为 null）"
           },
           "meta": {
-            "type": "object",
-            "properties": {
-              "requestId": {
-                "type": "string"
-              },
-              "specVersion": {
-                "type": "string"
-              },
-              "durationMs": {
-                "type": "number"
-              },
-              "accountId": {
-                "type": "string"
-              }
-            }
+            "$ref": "#/components/schemas/Meta"
           },
           "error": {
-            "nullable": true,
-            "type": "object",
-            "properties": {
-              "code": {
-                "type": "string"
-              },
-              "message": {
-                "type": "string"
-              },
-              "retryable": {
-                "type": "boolean"
-              },
-              "details": {
-                "type": "object"
-              },
-              "retryAfterMs": {
-                "type": "number"
-              }
-            }
+            "$ref": "#/components/schemas/Error"
           }
         }
-      }
-    },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
       }
     }
   },
@@ -2798,5 +4732,6 @@
     {
       "bearerAuth": []
     }
-  ]
+  ],
+  "x-fuma-spec-version": "2026-11-15.1"
 }

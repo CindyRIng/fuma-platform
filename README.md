@@ -12,8 +12,8 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A522.5-brightgreen">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.7-blue">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-60%20passed-success">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.8-blue">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-65%20passed-success">
   <img alt="Upstream" src="https://img.shields.io/badge/upstream-fumamx.com-0aa2c0">
 </p>
 
@@ -118,7 +118,7 @@ fuma serve &   # http://127.0.0.1:17890
 TOKEN=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.HOME+'/.fuma-platform/config.json','utf8')).server.apiToken)")
 curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:17890/v1/health
 curl -s -H "Authorization: Bearer $TOKEN" -X POST http://127.0.0.1:17890/v1/customers/list -H 'content-type: application/json' -d '{"page":1,"pageSize":5}'
-open http://127.0.0.1:17890/v1/docs        # 浏览器查看 REST API 文档（OpenAPI 可导入 Swagger/Postman）
+open http://127.0.0.1:17890/v1/docs        # Swagger UI 交互式 API 文档（本地静态资源，无需外网）
 curl -s http://127.0.0.1:17890/v1/openapi.json | head
 
 fuma mcp    # MCP stdio，供 Claude/其他 Agent 直接调用
@@ -167,7 +167,7 @@ SQLite 已开启 WAL / `synchronous=NORMAL` / 64MB cache / mmap 256MB / prepared
 ```bash
 npm install
 npm run typecheck
-npm test            # 60 个用例
+npm test            # 65 个用例
 npm run build
 npm run spec        # spec/openapi.json · cli-commands.json · mcp-tools.json
 npm run docs:gen    # docs/generated/*

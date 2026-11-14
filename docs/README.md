@@ -1,6 +1,6 @@
 # Fuma Platform 文档
 
-> 孚盟（fumamx.com）本地封装平台。当前版本：**v1.0.7（P2–P6 完成）**。
+> 孚盟（fumamx.com）本地封装平台。当前版本：**v1.0.8（P2–P6 完成）**。
 > 快速入口：[快速开始](快速开始.md) ｜ [运维部署手册](运维部署手册.md) ｜ [CLI 参考](generated/CLI参考.md) ｜ [REST API](generated/REST-API.md) ｜ [MCP 工具](generated/MCP工具.md)
 
 ## 文档地图
@@ -22,7 +22,7 @@
 | [快速开始](快速开始.md) | 安装/登录/常用命令 |
 | [运维部署手册](运维部署手册.md) | 部署/备份/升级/排障/安全 |
 | [generated/CLI参考](generated/CLI参考.md) | CLI 全命令（自动生成） |
-| [generated/REST-API](generated/REST-API.md) | REST 全接口（自动生成） |
+| [generated/REST-API](generated/REST-API.md) | REST 全接口（自动生成）；在线 Swagger UI: `/v1/docs` |
 | [generated/MCP工具](generated/MCP工具.md) | MCP 工具（自动生成） |
 | [generated/能力总览](generated/能力总览.md) | 能力矩阵（自动生成） |
 

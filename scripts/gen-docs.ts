@@ -56,7 +56,7 @@ writeFileSync(resolve(genDir, 'CLI参考.md'), cliMd.join('\n'));
 const restMd: string[] = [];
 restMd.push('# REST API 参考');
 restMd.push('');
-restMd.push(`> 版本 ${VERSION}｜OpenAPI: \`spec/openapi.json\`｜服务地址默认 \`http://127.0.0.1:17890\`。`);
+restMd.push(`> 版本 ${VERSION}｜OpenAPI: \`spec/openapi.json\`｜Swagger UI: \`http://127.0.0.1:17890/v1/docs\`｜服务地址默认 \`http://127.0.0.1:17890\`。`);
 restMd.push('');
 restMd.push('鉴权：`Authorization: Bearer <apiToken>`（`/v1/health`、`/v1/docs`、`/v1/openapi.json`、`/v1/spec/*` 免鉴权）。');
 restMd.push('');

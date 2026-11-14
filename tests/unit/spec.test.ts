@@ -8,7 +8,16 @@ import { CAPABILITIES } from '../../src/api/capabilities.js';
 describe('spec', () => {
   it('OpenAPI 包含所有能力路径且方法正确', () => {
     const api = buildOpenApi() as { openapi: string; paths: Record<string, Record<string, unknown>> };
-    expect(api.openapi).toBe('3.1.0');
+    expect(api.openapi).toBe('3.0.3');
+    expect((api as unknown as { info?: { license?: { name?: string } } }).info?.license?.name).toBe('MIT');
+    const ops = Object.values(api.paths).flatMap((p) => Object.values(p as Record<string, { operationId?: string }>));
+    const ids = ops.map((o) => o.operationId);
+    expect(new Set(ids).size).toBe(ids.length);
+    const accountCreate = (api.paths['/v1/accounts']?.post ?? {}) as { requestBody?: { content?: { 'application/json'?: { schema?: { properties?: Record<string, unknown>; required?: string[] } } } } };
+    expect(accountCreate.requestBody?.content?.['application/json']?.schema?.properties?.accountId).toBeTruthy();
+    expect(accountCreate.requestBody?.content?.['application/json']?.schema?.required).toContain('accountId');
+    const health = (api.paths['/v1/health']?.get ?? {}) as { security?: unknown[] };
+    expect(health.security).toEqual([]);
     for (const c of CAPABILITIES) {
       const path = api.paths[c.http.path];
       expect(path, `path ${c.http.path}`).toBeTruthy();
