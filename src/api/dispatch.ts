@@ -160,7 +160,8 @@ export async function dispatch(rt: Runtime, capabilityId: string, input: Record<
         accountId: typeof input.accountId === 'string' ? input.accountId : undefined,
         customerId: typeof input.customerId === 'string' ? input.customerId : undefined,
         page: input.page as number | string | undefined,
-        pageSize: input.pageSize as number | string | undefined
+        pageSize: input.pageSize as number | string | undefined,
+        fresh: input.fresh === true
       });
     case 'followup.list':
       return listFollowups(rt, {

@@ -139,13 +139,60 @@ async function executeAction(rt: Runtime, row: OutboxRow): Promise<{ upstreamId?
         return { upstreamId: null };
       }
       case 'contact.add': {
+        // 实测（2026-11-15）：联系人新增走 edit_customer 提交 master.contacts（联系人“所属客户”字段必填）
         const data = payload.data as Record<string, unknown>;
-        await call('/bill/sub/add_sub', {
-          moduleCode: 'NewBF003',
-          masterKeyId: String(payload.upstreamId ?? payload.customerId ?? row.entity_id),
-          data: { ...data, custId: String(payload.upstreamId ?? payload.customerId ?? row.entity_id) }
+        const ownerInfo = await ensureOwnerInfo(rt, row.account_id);
+        const upstreamId = String(payload.upstreamId ?? payload.customerId ?? row.entity_id);
+        const dctx = { accountId: ctx.accountId, tokens: ctx.tokens, logger: rt.logger };
+        let master: Record<string, unknown> = {};
+        try {
+          const detail = await rt.upstream.call<Array<Record<string, unknown>>>(dctx, {
+            method: 'POST', path: '/bill/bill/get_detail_info', body: { masterKeyId: upstreamId, moduleCode: 'NewBF001', structId: 1, desensitizeFlag: false }
+          });
+          master = (Array.isArray(detail) ? detail[0] : undefined) ?? {};
+        } catch {
+          master = {};
+        }
+        const contacts = Array.isArray(master.contacts) ? [...(master.contacts as Array<Record<string, unknown>>)] : [];
+        const now = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        contacts.push({
+          contName: data.contName ?? '',
+          custId: upstreamId,
+          custName: master.custName ?? '',
+          nickName: data.nickName ?? '',
+          decisionMaker: data.decisionMaker ?? 0,
+          primaryContact: contacts.length ? 0 : 1,
+          mobile: data.mobile ?? '',
+          tel: data.tel ?? '',
+          mailAddress: data.mailAddress ?? '',
+          wechat: data.wechat ?? '',
+          whatsapp: data.whatsapp ?? '',
+          jobs: data.jobs ?? '',
+          deptName: data.deptName ?? '',
+          ownerCtId: ownerInfo.ctId ?? null,
+          ownerDeptKey: ownerInfo.deptKey ?? '',
+          createCtId: ownerInfo.ctId ?? null,
+          createDate: dateStr,
+          timeZone: '9',
+          workStatus: '1',
+          intimacy: 0,
+          ...data
         });
-        return { upstreamId: null };
+        master.contacts = contacts;
+        master.key_id = upstreamId;
+        await call('/bill/customer/edit_customer', {
+          cid: rt.config.upstream.companyId,
+          moduleCode: 'NewBF001',
+          customersMultipleTitlesList: [],
+          submitApprovalRequest: { autoOperatorFlag: true, moduleCode: 'NewBF001', optCode: 'otEdit' },
+          master,
+          opCtId: ownerInfo.ctId ?? undefined,
+          opDeptKey: ownerInfo.deptKey ?? undefined,
+          optCode: 'otEdit'
+        });
+        return { upstreamId };
       }
       default:
         throw new AppError('not_implemented', `未知 outbox action: ${row.action}`);

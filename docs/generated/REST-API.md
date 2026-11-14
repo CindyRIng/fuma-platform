@@ -1,6 +1,6 @@
 # REST API 参考
 
-> 版本 1.0.0｜OpenAPI: `spec/openapi.json`｜服务地址默认 `http://127.0.0.1:17890`。
+> 版本 1.0.1｜OpenAPI: `spec/openapi.json`｜服务地址默认 `http://127.0.0.1:17890`。
 
 鉴权：`Authorization: Bearer <apiToken>`（`/v1/health`、`/v1/docs`、`/v1/openapi.json`、`/v1/spec/*` 免鉴权）。
 
@@ -310,7 +310,7 @@
 
 ### POST /v1/contacts/list
 
-联系人列表（客户详情 subBill 方式），支持分页。
+联系人列表（客户详情 subBill 方式），支持分页与 fresh 强制上游。
 
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |---|---|---|---|---|
@@ -318,10 +318,11 @@
 | `customerId` | body | string | 否 | 客户 ID |
 | `page` | body | number | 否 | 页码 |
 | `pageSize` | body | number | 否 | 每页条数 |
+| `fresh` | body | boolean | 否 | 强制上游刷新 |
 
 ### POST /v1/contacts
 
-为指定客户创建联系人（本地先事实 + outbox → 上游 bill/sub/add_sub）。
+为指定客户创建联系人（本地先事实 + outbox → 上游 edit_customer 提交 master.contacts；已实测）。
 
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |---|---|---|---|---|

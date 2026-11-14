@@ -40,3 +40,12 @@
 - 新增 `scripts/bench-live.ts`（真实上游延迟基准）与 `scripts/keepalive-watch.ts`（24h 保活观察）。
 - 实测筛选后缀：CONTAIN=`_like`、IS=`_eq`、NOT_IN=`_notin`。
 - 发现并记录：发起新登录会使旧 token 立即失效（单会话行为）。
+
+## [1.0.1] - 2026-11-15
+
+### 修复/验证
+
+- 联系人新增同步改为 `edit_customer(master.contacts)` 方案，真实上游验证成功。
+- `contact.list` 增加并透传 `fresh` 参数，修复 REST 层丢弃未声明参数导致无法强制刷新。
+- 新增 README 配图（MiniMax-H3-Image 生成）与可视化改版。
+- 记录跟进新增接口契约待补（本地优先实现保留，outbox 标记 dead）。

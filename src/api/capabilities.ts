@@ -286,14 +286,14 @@ export const CAPABILITIES: Capability[] = [
   // ---------- contact / followup (P4/P5) ----------
   cap({
     id: 'contact.list', noun: 'contact', verb: 'list', title: '联系人列表', summary: '按客户查询联系人',
-    description: '联系人列表（客户详情 subBill 方式），支持分页。',
+    description: '联系人列表（客户详情 subBill 方式），支持分页与 fresh 强制上游。',
     category: 'contact', phase: 'P4', mutating: false, implemented: true,
-    params: [opt('accountId', '--account <id>', 'string', '账号 ID'), opt('customerId', '--customer <id>', 'string', '客户 ID'), opt('page', '--page <n>', 'number', '页码', false, 1), opt('pageSize', '--page-size <n>', 'number', '每页条数', false, 20)],
+    params: [opt('accountId', '--account <id>', 'string', '账号 ID'), opt('customerId', '--customer <id>', 'string', '客户 ID'), opt('page', '--page <n>', 'number', '页码', false, 1), opt('pageSize', '--page-size <n>', 'number', '每页条数', false, 20), opt('fresh', '--fresh', 'boolean', '强制上游刷新', false, false)],
     http: { method: 'POST', path: '/v1/contacts/list' }, example: 'fuma contact list --customer 873590689807446016'
   }),
   cap({
     id: 'contact.create', noun: 'contact', verb: 'create', title: '新建联系人', summary: '本地优先创建联系人',
-    description: '为指定客户创建联系人（本地先事实 + outbox → 上游 bill/sub/add_sub）。',
+    description: '为指定客户创建联系人（本地先事实 + outbox → 上游 edit_customer 提交 master.contacts；已实测）。',
     category: 'contact', phase: 'P5', mutating: true, implemented: true,
     params: [commonAccount, opt('customerId', '--customer <id>', 'string', '客户 ID', true), opt('data', '--data <json>', 'json', '联系人字段 JSON', true)],
     http: { method: 'POST', path: '/v1/contacts' }, example: 'fuma contact create --account acct_01 --customer <id> --data \'{"contName":"张三"}\''

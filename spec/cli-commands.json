@@ -797,7 +797,7 @@
     "verb": "list",
     "title": "联系人列表",
     "summary": "按客户查询联系人",
-    "description": "联系人列表（客户详情 subBill 方式），支持分页。",
+    "description": "联系人列表（客户详情 subBill 方式），支持分页与 fresh 强制上游。",
     "args": [],
     "options": [
       {
@@ -825,6 +825,13 @@
         "required": false,
         "description": "每页条数",
         "default": 20
+      },
+      {
+        "flags": "--fresh",
+        "type": "boolean",
+        "required": false,
+        "description": "强制上游刷新",
+        "default": false
       }
     ],
     "example": "fuma contact list --customer 873590689807446016",
@@ -837,7 +844,7 @@
     "verb": "create",
     "title": "新建联系人",
     "summary": "本地优先创建联系人",
-    "description": "为指定客户创建联系人（本地先事实 + outbox → 上游 bill/sub/add_sub）。",
+    "description": "为指定客户创建联系人（本地先事实 + outbox → 上游 edit_customer 提交 master.contacts；已实测）。",
     "args": [],
     "options": [
       {

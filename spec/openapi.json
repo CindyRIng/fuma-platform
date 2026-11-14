@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "fuma-platform API",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "fumamx 本地封装平台 REST API。specVersion=2026-11-15.1。统一 envelope：{ok,data,meta,error}。鉴权：Authorization: Bearer <apiToken>（/v1/health 与 /v1/docs 除外）。"
   },
   "servers": [
@@ -1652,7 +1652,7 @@
       "post": {
         "operationId": "contact.list",
         "summary": "按客户查询联系人",
-        "description": "联系人列表（客户详情 subBill 方式），支持分页。",
+        "description": "联系人列表（客户详情 subBill 方式），支持分页与 fresh 强制上游。",
         "tags": [
           "contact"
         ],
@@ -1709,6 +1709,10 @@
                   "pageSize": {
                     "description": "每页条数",
                     "type": "number"
+                  },
+                  "fresh": {
+                    "description": "强制上游刷新",
+                    "type": "boolean"
                   }
                 }
               }
@@ -1721,7 +1725,7 @@
       "post": {
         "operationId": "contact.create",
         "summary": "本地优先创建联系人",
-        "description": "为指定客户创建联系人（本地先事实 + outbox → 上游 bill/sub/add_sub）。",
+        "description": "为指定客户创建联系人（本地先事实 + outbox → 上游 edit_customer 提交 master.contacts；已实测）。",
         "tags": [
           "contact"
         ],

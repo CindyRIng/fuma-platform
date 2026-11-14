@@ -1,6 +1,6 @@
 # CLI 参考（fuma）
 
-> 版本 1.0.0｜spec 2026-11-15.1｜由 `npm run docs:gen` 生成，请勿手改。
+> 版本 1.0.1｜spec 2026-11-15.1｜由 `npm run docs:gen` 生成，请勿手改。
 
 全局选项：`--home <dir>`、`--format json|table`、`--quiet`、`--debug`、`--json`（单命令强制 JSON）。
 
@@ -462,7 +462,7 @@ fuma dedup history
 
 **联系人列表** — 按客户查询联系人
 
-联系人列表（客户详情 subBill 方式），支持分页。
+联系人列表（客户详情 subBill 方式），支持分页与 fresh 强制上游。
 
 | 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|
@@ -470,6 +470,7 @@ fuma dedup history
 | `--customer <id>` | string | 否 | 客户 ID |
 | `--page <n>` | number | 否 | 页码（默认 `1`） |
 | `--page-size <n>` | number | 否 | 每页条数（默认 `20`） |
+| `--fresh` | boolean | 否 | 强制上游刷新（默认 `false`） |
 
 ```bash
 fuma contact list --customer 873590689807446016
@@ -479,7 +480,7 @@ fuma contact list --customer 873590689807446016
 
 **新建联系人** — 本地优先创建联系人
 
-为指定客户创建联系人（本地先事实 + outbox → 上游 bill/sub/add_sub）。
+为指定客户创建联系人（本地先事实 + outbox → 上游 edit_customer 提交 master.contacts；已实测）。
 
 | 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|

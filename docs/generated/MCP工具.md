@@ -1,6 +1,6 @@
 # MCP 工具参考
 
-> 版本 1.0.0｜stdio 运行：`fuma mcp`｜共 43 个工具（已实现 42 个）。
+> 版本 1.0.1｜stdio 运行：`fuma mcp`｜共 43 个工具（已实现 42 个）。
 
 | 工具 | 说明 | 阶段 | 已实现 |
 |---|---|---|---|
@@ -782,7 +782,7 @@
 
 ## fuma_contact_list
 
-联系人列表（客户详情 subBill 方式），支持分页。
+联系人列表（客户详情 subBill 方式），支持分页与 fresh 强制上游。
 
 对应 CLI: fuma contact list；对应 REST: POST /v1/contacts/list。
 
@@ -805,6 +805,10 @@
     "pageSize": {
       "type": "number",
       "description": "每页条数"
+    },
+    "fresh": {
+      "type": "boolean",
+      "description": "强制上游刷新"
     }
   },
   "additionalProperties": false
@@ -813,7 +817,7 @@
 
 ## fuma_contact_create
 
-为指定客户创建联系人（本地先事实 + outbox → 上游 bill/sub/add_sub）。
+为指定客户创建联系人（本地先事实 + outbox → 上游 edit_customer 提交 master.contacts；已实测）。
 
 对应 CLI: fuma contact create；对应 REST: POST /v1/contacts。
 
