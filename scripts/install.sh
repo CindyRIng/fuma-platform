@@ -20,6 +20,12 @@ if [ ! -f "$FUMA_HOME/config.json" ]; then
   FUMA_HOME="$FUMA_HOME" node --experimental-sqlite --import tsx "$ROOT/src/main.ts" doctor >/dev/null 2>&1 || true
 fi
 
+echo "==> 安装 fuma CLI 启动器到 ~/.local/bin"
+mkdir -p "$HOME/.local/bin"
+ln -sfn "$ROOT/bin/fuma" "$HOME/.local/bin/fuma"
+chmod +x "$ROOT/bin/fuma"
+case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) echo "提示: 请把 ~/.local/bin 加入 PATH（export PATH=\"$HOME/.local/bin:$PATH\"）";; esac
+
 echo "==> 安装 systemd user unit"
 mkdir -p "$UNIT_DIR"
 if [ -x "$HOME/cloak-env/bin/cloak-run" ]; then
@@ -62,6 +68,7 @@ cat <<EOF
   REST:     http://127.0.0.1:17890  (Bearer token 见 $FUMA_HOME/config.json)
   API Token: ${TOKEN:0:8}…
   健康检查: curl -s http://127.0.0.1:17890/v1/health
+  CLI:       fuma version   # 已安装到 ~/.local/bin/fuma
   登录:     node --experimental-sqlite $ROOT/dist/main.js session login <accountId>
   文档:     $ROOT/docs/generated/{CLI参考,REST-API,MCP工具}.md
 

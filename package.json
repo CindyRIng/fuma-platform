@@ -1,6 +1,6 @@
 {
   "name": "fuma-platform",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "孚盟(fumamx)本地封装平台：多账号会话池 + 请求池 + 本地缓存 + 事件，暴露 CLI/REST/MCP/SKILL",
   "type": "module",

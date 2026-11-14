@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
-# fuma launcher: 自动带上 --experimental-sqlite；NixOS 下优先使用 cloak-run（浏览器依赖 FHS）
+# fuma launcher: 自动带上 --experimental-sqlite --no-warnings；NixOS 下优先使用 cloak-run（浏览器依赖 FHS）
+# 支持通过 symlink 安装（例如 ~/.local/bin/fuma -> <repo>/bin/fuma）
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SOURCE="${BASH_SOURCE[0]}"
+if command -v readlink >/dev/null 2>&1; then
+  RESOLVED="$(readlink -f "$SOURCE" 2>/dev/null || true)"
+  [ -n "$RESOLVED" ] && SOURCE="$RESOLVED"
+fi
+ROOT="$(cd "$(dirname "$SOURCE")/.." && pwd)"
 MAIN="$ROOT/dist/main.js"
 if [ ! -f "$MAIN" ]; then
   echo "fuma: 未找到 $MAIN，请先运行 npm run build（或 ./scripts/install.sh）" >&2
   exit 2
 fi
 if [ -x "$HOME/cloak-env/bin/cloak-run" ]; then
-  exec "$HOME/cloak-env/bin/cloak-run" node --experimental-sqlite "$MAIN" "$@"
+  exec "$HOME/cloak-env/bin/cloak-run" node --experimental-sqlite --no-warnings "$MAIN" "$@"
 fi
-exec node --experimental-sqlite "$MAIN" "$@"
+exec node --experimental-sqlite --no-warnings "$MAIN" "$@"
