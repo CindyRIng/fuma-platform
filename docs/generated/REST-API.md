@@ -1,6 +1,6 @@
 # REST API 参考
 
-> 版本 1.0.4｜OpenAPI: `spec/openapi.json`｜服务地址默认 `http://127.0.0.1:17890`。
+> 版本 1.0.5｜OpenAPI: `spec/openapi.json`｜服务地址默认 `http://127.0.0.1:17890`。
 
 鉴权：`Authorization: Bearer <apiToken>`（`/v1/health`、`/v1/docs`、`/v1/openapi.json`、`/v1/spec/*` 免鉴权）。
 
@@ -108,6 +108,7 @@
 | `accountId` | path/query | string | 是 | 账号 ID（如 acct_01） |
 | `name` | body | string | 否 | 显示名称 |
 | `ownerName` | body | string | 否 | 业务员姓名 |
+| `ownerCtId` | body | string | 否 | 孚盟账号 ctId（用于容量统计） |
 | `loginMode` | body | string | 否 | 登录方式：dingtalk_sso_qr|password_slider_dingtalk|manual_token |
 | `dingtalkOrg` | body | string | 否 | 钉钉组织精确名称 |
 | `fumaEnterprise` | body | string | 否 | 孚盟企业精确名称 |
@@ -123,6 +124,9 @@
 | `accountId` | path/query | string | 是 | 账号 ID |
 | `name` | body | string | 否 | 显示名称 |
 | `ownerName` | body | string | 否 | 业务员姓名 |
+| `ownerCtId` | body | string | 否 | 孚盟账号 ctId |
+| `dingtalkOrg` | body | string | 否 | 钉钉组织精确名称 |
+| `fumaEnterprise` | body | string | 否 | 孚盟企业精确名称 |
 | `status` | body | string | 否 | 状态：inactive|active|degraded|disabled |
 | `capacityLimit` | body | number | 否 | 容量上限覆盖 |
 | `keepBrowserAlive` | body | boolean | 否 | 是否保持浏览器 |

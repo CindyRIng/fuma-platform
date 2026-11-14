@@ -127,6 +127,12 @@
         "description": "业务员姓名"
       },
       {
+        "flags": "--owner-ct-id <id>",
+        "type": "string",
+        "required": false,
+        "description": "孚盟账号 ctId（用于容量统计）"
+      },
+      {
         "flags": "--login-mode <mode>",
         "type": "string",
         "required": false,
@@ -190,6 +196,24 @@
         "type": "string",
         "required": false,
         "description": "业务员姓名"
+      },
+      {
+        "flags": "--owner-ct-id <id>",
+        "type": "string",
+        "required": false,
+        "description": "孚盟账号 ctId"
+      },
+      {
+        "flags": "--dingtalk-org <name>",
+        "type": "string",
+        "required": false,
+        "description": "钉钉组织精确名称"
+      },
+      {
+        "flags": "--fuma-enterprise <name>",
+        "type": "string",
+        "required": false,
+        "description": "孚盟企业精确名称"
       },
       {
         "flags": "--status <status>",

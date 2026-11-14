@@ -79,6 +79,7 @@ export async function dispatch(rt: Runtime, capabilityId: string, input: Record<
         accountId,
         name: typeof input.name === 'string' ? input.name : undefined,
         ownerName: typeof input.ownerName === 'string' ? input.ownerName : undefined,
+        ownerCtId: typeof input.ownerCtId === 'string' ? input.ownerCtId : undefined,
         loginMode: typeof input.loginMode === 'string' ? input.loginMode : undefined,
         dingtalkOrg: typeof input.dingtalkOrg === 'string' ? input.dingtalkOrg : undefined,
         fumaEnterprise: typeof input.fumaEnterprise === 'string' ? input.fumaEnterprise : undefined,
@@ -91,6 +92,9 @@ export async function dispatch(rt: Runtime, capabilityId: string, input: Record<
       return updateAccount(rt, accountId, {
         ...(typeof input.name === 'string' ? { name: input.name } : {}),
         ...(typeof input.ownerName === 'string' ? { ownerName: input.ownerName } : {}),
+        ...(typeof input.ownerCtId === 'string' ? { ownerCtId: input.ownerCtId } : {}),
+        ...(typeof input.dingtalkOrg === 'string' ? { dingtalkOrg: input.dingtalkOrg } : {}),
+        ...(typeof input.fumaEnterprise === 'string' ? { fumaEnterprise: input.fumaEnterprise } : {}),
         ...(typeof input.status === 'string' ? { status: input.status } : {}),
         ...(typeof input.capacityLimit === 'number' ? { capacityLimit: input.capacityLimit } : {}),
         ...(typeof input.keepBrowserAlive === 'boolean' ? { keepBrowserAlive: input.keepBrowserAlive } : {})

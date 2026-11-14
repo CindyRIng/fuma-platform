@@ -1,3 +1,10 @@
+## [1.0.5] - 2026-11-15
+
+### 新增/修复
+
+- `account create/update` 支持 `--owner-ct-id`（孚盟 ctId，用于容量统计），update 同时支持 `--dingtalk-org`/`--fuma-enterprise`。
+- 生产账号 acct_01 已更新为真实业务员：`宋释孟`（ownerCtId=13148056），容量统计正常。
+
 ## [1.0.3] - 2026-11-15
 
 ### 修复

@@ -1,6 +1,6 @@
 # CLI 参考（fuma）
 
-> 版本 1.0.4｜spec 2026-11-15.1｜由 `npm run docs:gen` 生成，请勿手改。
+> 版本 1.0.5｜spec 2026-11-15.1｜由 `npm run docs:gen` 生成，请勿手改。
 
 全局选项：`--home <dir>`、`--format json|table`、`--quiet`、`--debug`、`--json`（单命令强制 JSON）。
 
@@ -136,6 +136,7 @@ fuma account get acct_01
 | `accountId` | string | 是 | 账号 ID（如 acct_01） |
 | `--name <name>` | string | 否 | 显示名称（默认 `""`） |
 | `--owner-name <name>` | string | 否 | 业务员姓名 |
+| `--owner-ct-id <id>` | string | 否 | 孚盟账号 ctId（用于容量统计） |
 | `--login-mode <mode>` | string | 否 | 登录方式：dingtalk_sso_qr|password_slider_dingtalk|manual_token（默认 `"dingtalk_sso_qr"`） |
 | `--dingtalk-org <name>` | string | 否 | 钉钉组织精确名称 |
 | `--fuma-enterprise <name>` | string | 否 | 孚盟企业精确名称 |
@@ -157,6 +158,9 @@ fuma account create acct_01 --name "账号1"
 | `accountId` | string | 是 | 账号 ID |
 | `--name <name>` | string | 否 | 显示名称 |
 | `--owner-name <name>` | string | 否 | 业务员姓名 |
+| `--owner-ct-id <id>` | string | 否 | 孚盟账号 ctId |
+| `--dingtalk-org <name>` | string | 否 | 钉钉组织精确名称 |
+| `--fuma-enterprise <name>` | string | 否 | 孚盟企业精确名称 |
 | `--status <status>` | string | 否 | 状态：inactive|active|degraded|disabled |
 | `--capacity-limit <n>` | number | 否 | 容量上限覆盖 |
 | `--keep-browser-alive <bool>` | boolean | 否 | 是否保持浏览器 |

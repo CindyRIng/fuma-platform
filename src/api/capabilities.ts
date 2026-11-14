@@ -108,6 +108,7 @@ export const CAPABILITIES: Capability[] = [
       arg('accountId', 'string', '账号 ID（如 acct_01）', true),
       opt('name', '--name <name>', 'string', '显示名称', false, ''),
       opt('ownerName', '--owner-name <name>', 'string', '业务员姓名'),
+      opt('ownerCtId', '--owner-ct-id <id>', 'string', '孚盟账号 ctId（用于容量统计）'),
       opt('loginMode', '--login-mode <mode>', 'string', '登录方式：dingtalk_sso_qr|password_slider_dingtalk|manual_token', false, 'dingtalk_sso_qr'),
       opt('dingtalkOrg', '--dingtalk-org <name>', 'string', '钉钉组织精确名称'),
       opt('fumaEnterprise', '--fuma-enterprise <name>', 'string', '孚盟企业精确名称'),
@@ -124,6 +125,9 @@ export const CAPABILITIES: Capability[] = [
       arg('accountId', 'string', '账号 ID', true),
       opt('name', '--name <name>', 'string', '显示名称'),
       opt('ownerName', '--owner-name <name>', 'string', '业务员姓名'),
+      opt('ownerCtId', '--owner-ct-id <id>', 'string', '孚盟账号 ctId'),
+      opt('dingtalkOrg', '--dingtalk-org <name>', 'string', '钉钉组织精确名称'),
+      opt('fumaEnterprise', '--fuma-enterprise <name>', 'string', '孚盟企业精确名称'),
       opt('status', '--status <status>', 'string', '状态：inactive|active|degraded|disabled'),
       opt('capacityLimit', '--capacity-limit <n>', 'number', '容量上限覆盖'),
       opt('keepBrowserAlive', '--keep-browser-alive <bool>', 'boolean', '是否保持浏览器')

@@ -1,6 +1,6 @@
 # MCP 工具参考
 
-> 版本 1.0.4｜stdio 运行：`fuma mcp`｜共 43 个工具（已实现 42 个）。
+> 版本 1.0.5｜stdio 运行：`fuma mcp`｜共 43 个工具（已实现 42 个）。
 
 | 工具 | 说明 | 阶段 | 已实现 |
 |---|---|---|---|
@@ -173,6 +173,10 @@
       "type": "string",
       "description": "业务员姓名"
     },
+    "ownerCtId": {
+      "type": "string",
+      "description": "孚盟账号 ctId（用于容量统计）"
+    },
     "loginMode": {
       "type": "string",
       "description": "登录方式：dingtalk_sso_qr|password_slider_dingtalk|manual_token"
@@ -222,6 +226,18 @@
     "ownerName": {
       "type": "string",
       "description": "业务员姓名"
+    },
+    "ownerCtId": {
+      "type": "string",
+      "description": "孚盟账号 ctId"
+    },
+    "dingtalkOrg": {
+      "type": "string",
+      "description": "钉钉组织精确名称"
+    },
+    "fumaEnterprise": {
+      "type": "string",
+      "description": "孚盟企业精确名称"
     },
     "status": {
       "type": "string",

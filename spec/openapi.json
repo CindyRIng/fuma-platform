@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "fuma-platform API",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "fumamx 本地封装平台 REST API。specVersion=2026-11-15.1。统一 envelope：{ok,data,meta,error}。鉴权：Authorization: Bearer <apiToken>（/v1/health 与 /v1/docs 除外）。"
   },
   "servers": [
@@ -322,6 +322,10 @@
                     "description": "业务员姓名",
                     "type": "string"
                   },
+                  "ownerCtId": {
+                    "description": "孚盟账号 ctId（用于容量统计）",
+                    "type": "string"
+                  },
                   "loginMode": {
                     "description": "登录方式：dingtalk_sso_qr|password_slider_dingtalk|manual_token",
                     "type": "string"
@@ -458,6 +462,18 @@
                   },
                   "ownerName": {
                     "description": "业务员姓名",
+                    "type": "string"
+                  },
+                  "ownerCtId": {
+                    "description": "孚盟账号 ctId",
+                    "type": "string"
+                  },
+                  "dingtalkOrg": {
+                    "description": "钉钉组织精确名称",
+                    "type": "string"
+                  },
+                  "fumaEnterprise": {
+                    "description": "孚盟企业精确名称",
                     "type": "string"
                   },
                   "status": {

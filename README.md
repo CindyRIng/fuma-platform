@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A522.5-brightgreen">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.4-blue">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.5-blue">
   <img alt="Tests" src="https://img.shields.io/badge/tests-54%20passed-success">
   <img alt="Upstream" src="https://img.shields.io/badge/upstream-fumamx.com-0aa2c0">
 </p>
