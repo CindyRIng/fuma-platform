@@ -1,0 +1,22 @@
+[Unit]
+Description=fuma-platform daemon (fumamx wrapper: session pool + request pool + cache + events)
+Documentation=file://%h/fuma-platform/docs/运维部署手册.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/fuma-platform
+Environment=FUMA_HOME=%h/.fuma-platform
+Environment=NODE_ENV=production
+# 若本机使用 cloakbrowser FHS 包装（NixOS 必需），使用下面一行；否则改用注释中的普通 node。
+ExecStart=%h/cloak-env/bin/cloak-run node --experimental-sqlite %h/fuma-platform/dist/main.js serve
+# ExecStart=/usr/bin/env node --experimental-sqlite %h/fuma-platform/dist/main.js serve
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

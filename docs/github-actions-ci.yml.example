@@ -1,0 +1,22 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --experimental-sqlite
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx tsc -p tsconfig.test.json --noEmit
+      - run: npm run build
+      - run: npm test
+      - run: npm run spec
+      - run: npm run docs:gen
+      - run: git diff --exit-code -- spec docs/generated || (echo 'generated files out of date' && exit 1)

@@ -1,0 +1,56 @@
+{
+  "name": "fuma-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "孚盟(fumamx)本地封装平台：多账号会话池 + 请求池 + 本地缓存 + 事件，暴露 CLI/REST/MCP/SKILL",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "bin": {
+    "fuma": "./dist/main.js"
+  },
+  "scripts": {
+    "dev": "node --experimental-sqlite --import tsx src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node --experimental-sqlite dist/main.js",
+    "clean": "rm -rf dist coverage",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "test": "NODE_OPTIONS=--experimental-sqlite vitest run",
+    "spec": "node --experimental-sqlite --import tsx src/main.ts spec",
+    "docs": "node --experimental-sqlite --import tsx src/main.ts docs",
+    "doctor": "node --experimental-sqlite --import tsx src/main.ts doctor",
+    "serve": "node --experimental-sqlite --import tsx src/main.ts serve",
+    "docs:gen": "node --experimental-sqlite --import tsx scripts/gen-docs.ts",
+    "bench": "node --experimental-sqlite --import tsx scripts/bench.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@zxing/library": "^0.21.3",
+    "cloakbrowser": "0.6.5",
+    "commander": "^15.1.0",
+    "jpeg-js": "^0.4.4",
+    "jsqr": "^1.4.0",
+    "playwright-core": "1.65.0",
+    "pngjs": "^7.0.0",
+    "qrcode": "^1.5.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/pngjs": "^6.0.5",
+    "@types/qrcode": "^1.5.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "license": "MIT",
+  "files": [
+    "dist",
+    "spec",
+    "docs",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ]
+}
