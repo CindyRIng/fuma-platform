@@ -323,7 +323,16 @@ export class SessionManager {
     this.ensureRow(accountId);
     const row = this.rt.store.get<Record<string, unknown>>('SELECT * FROM sessions WHERE account_id=?', accountId);
     const s = this.liveOf(accountId);
-    const state = (row?.state as SessionState) ?? s.state;
+    let state = (row?.state as SessionState) ?? s.state;
+    // 进程重启后，登录状态若没有活跃 loginTask 但有 token，则说明会话其实是有效的（陈旧 qr_ready/starting）
+    const loginStates = new Set<SessionState>(['starting', 'scanned', 'confirmed', 'redirected', 'enterprise_select', 'qr_ready']);
+    if (loginStates.has(state) && !s.busy && !s.loginTask && row?.access_token_enc) {
+      this.persist(accountId, { state: 'online', qrPayload: null, qrExpiresAt: null, lastError: null });
+      s.state = 'online';
+      s.qr = null;
+      state = 'online';
+      if (row) { row.state = 'online'; row.qr_payload = null; row.qr_expires_at = null; row.last_error = null; }
+    }
     const qr: SessionQrView | null = s.qr ?? (row?.qr_payload ? {
       payload: String(row.qr_payload),
       pngBase64: '',
@@ -362,7 +371,17 @@ export class SessionManager {
     const s = this.liveOf(accountId);
     s.cancelRequested = true;
     if (s.browser) await s.browser.close().catch(() => undefined);
-    if (s.busy) this.setState(accountId, 'cancelled');
+    s.browser = null;
+    s.loginTask = null;
+    s.busy = false;
+    if (this.loadTokens(accountId)) {
+      this.persist(accountId, { state: 'online', qrPayload: null, qrExpiresAt: null, lastError: null });
+      s.state = 'online';
+      s.qr = null;
+    } else if (s.busy || ['starting', 'scanned', 'confirmed', 'redirected', 'enterprise_select', 'qr_ready'].includes(s.state)) {
+      this.setState(accountId, 'idle');
+      s.qr = null;
+    }
     return this.getView(accountId);
   }
 
@@ -414,7 +433,14 @@ export class SessionManager {
       );
       const latency = Date.now() - started;
       this.rt.store.run('INSERT INTO session_health(account_id,checked_at,ok,latency_ms,error) VALUES(?,?,?,?,?)', accountId, nowIso(), 1, latency, null);
+      const live = this.liveOf(accountId);
+      if (!live.busy && !live.loginTask && live.state !== 'online') {
+        this.persist(accountId, { state: 'online', qrPayload: null, qrExpiresAt: null, lastError: null });
+        live.state = 'online';
+        live.qr = null;
+      }
       this.persist(accountId, { lastHeartbeatAt: nowIso() });
+      this.extendLocalExpiryAfterActivity(accountId, loaded.expiresAt);
       return { ok: true, latencyMs: latency };
     } catch (err) {
       const app = err instanceof AppError ? err : new AppError('upstream_error', String(err));
@@ -426,6 +452,24 @@ export class SessionManager {
       }
       return { ok: false, latencyMs: Date.now() - started, error: app.code };
     }
+  }
+
+  /**
+   * 实测（2026-11-16）：上游 token 名义 24h 过期后，只要期间有活动（心跳），请求仍可用；
+   * 因此心跳成功且本地有效期临近/已过期时，按活动续期估算刷新本地 token_expire_at，避免误触发重登。
+   */
+  private extendLocalExpiryAfterActivity(accountId: string, expiresAt: string | null): void {
+    const leadMs = Math.max(1, this.rt.config.login.reloginLeadMinutes) * 60_000;
+    if (expiresAt) {
+      const remainingMs = Date.parse(expiresAt) - Date.now();
+      if (remainingMs > leadMs) return;
+    }
+    const ttlHours = Math.max(1, this.rt.config.keepalive.tokenTtlHours);
+    const next = Date.now() + ttlHours * 3600_000;
+    this.rt.store.run('UPDATE sessions SET token_expire_at=?, updated_at=? WHERE account_id=?', next, nowIso(), accountId);
+    const s = this.liveOf(accountId);
+    s.tokenExpiresAt = new Date(next).toISOString();
+    this.rt.logger.info('token expiry extended after heartbeat activity', { accountId, previousExpiresAt: expiresAt, newExpiresAt: s.tokenExpiresAt, ttlHours });
   }
 
   listViews(): SessionView[] {

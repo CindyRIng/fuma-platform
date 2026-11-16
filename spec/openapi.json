@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "fuma-platform API",
-    "version": "1.0.9",
+    "version": "1.1.0",
     "summary": "孚盟本地封装平台 REST API（标准 OpenAPI 3.0）",
     "description": "fuma-platform 是孚盟（fumamx.com）本地封装平台的 REST API。\n\n**统一响应 envelope**：`{ ok, data, meta, error }`；成功 `ok=true`，失败 `ok=false` 且 `error.code` 为业务错误码。\n\n**鉴权**：`Authorization: Bearer <apiToken>`（apiToken 见 `~/.fuma-platform/config.json`）；`/v1/health`、`/v1/docs`、`/v1/openapi.json` 等公开。\n\n**能力与入口**：44 项能力同时映射 CLI / REST / MCP；扩展字段 `x-fuma-*` 给出 CLI/MCP 映射与实现阶段。\n\nspecVersion: 2026-11-15.1；Swagger UI: /v1/docs；OpenAPI JSON: /v1/openapi.json",
     "contact": {

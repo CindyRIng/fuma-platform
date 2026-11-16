@@ -12,8 +12,8 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A522.5-brightgreen">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.9-blue">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-65%20passed-success">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-blue">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-67%20passed-success">
   <img alt="Upstream" src="https://img.shields.io/badge/upstream-fumamx.com-0aa2c0">
 </p>
 
@@ -168,7 +168,7 @@ SQLite 已开启 WAL / `synchronous=NORMAL` / 64MB cache / mmap 256MB / prepared
 ```bash
 npm install
 npm run typecheck
-npm test            # 65 个用例
+npm test            # 67 个用例
 npm run build
 npm run spec        # spec/openapi.json · cli-commands.json · mcp-tools.json
 npm run docs:gen    # docs/generated/*
@@ -179,7 +179,7 @@ npm run bench       # 50 账号 mock 压测
 
 - **v1.0.6**：P2–P6 完成；systemd 部署运行中；GitHub public（MIT）。
 - ⚠️ **删除客户**：当前验证账号无删除权限（上游 1114），平台如实返回错误；需管理员或换有权限账号。
-- ⚠️ **扫码登录**：首次需人工扫码一次；之后心跳保活，24h 令牌到期后按重登策略处理（正在进行 24h 保活观察）。
+- **扫码登录**：首次需人工扫码一次；之后心跳保活。实测 token 名义 24h 到期后仍可继续使用（活动续期：跨 31h、停机 8h43m 后心跳仍成功）；心跳成功会刷新本地有效期，避免误重登。
 - ⚠️ **海关范围**：仅按公司查询；产品/交易分析、贸易监测不在 MVP。
 - ⚠️ **真实 50 账号压测**：当前为 50 账号 mock 基准；真实多账号需在目标环境扩展。
 

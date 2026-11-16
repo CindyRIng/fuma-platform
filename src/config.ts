@@ -50,7 +50,9 @@ export const ConfigSchema = z.object({
   keepalive: z.object({
     intervalSeconds: z.number().int().default(240),
     timeoutMs: z.number().int().default(15_000),
-    failureThreshold: z.number().int().default(3)
+    failureThreshold: z.number().int().default(3),
+    // 上游 token 名义 24h，但会话按活动续期；心跳成功且临近/已过期时按该 TTL 估算刷新本地有效期
+    tokenTtlHours: z.number().int().default(24)
   }).prefault({}),
   pool: z.object({
     perAccountConcurrency: z.number().int().default(2),

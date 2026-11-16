@@ -84,3 +84,38 @@ describe('SessionManager', () => {
     rt.close();
   });
 });
+
+describe('keepalive expiry', () => {
+  it('心跳成功且本地 token 已过期 → 按活动续期刷新有效期，needsRelogin=false', async () => {
+    const rt = setup();
+    rt.store.run(
+      `INSERT INTO sessions(account_id,state,mode,access_token_enc,individual_token_enc,token_expire_at,updated_at)
+       VALUES(?,?,?,?,?,?,?)`,
+      'acct_01', 'online', 'dingtalk_sso_qr', rt.box.encrypt('AT'), rt.box.encrypt('IAT'),
+      Date.now() - 3600_000, new Date().toISOString()
+    );
+    (rt as unknown as { upstream: UpstreamClient }).upstream = mockUpstream(() => new Response(JSON.stringify({ code: '0', data: {} }), { status: 200 }));
+    const r = await rt.sessions.heartbeat('acct_01');
+    expect(r.ok).toBe(true);
+    expect(rt.sessions.needsRelogin('acct_01')).toBe(false);
+    const view = rt.sessions.getView('acct_01');
+    expect(view.tokenRemainingSeconds ?? 0).toBeGreaterThan(3600);
+    expect(view.state).toBe('online');
+    rt.close();
+  });
+});
+
+describe('stale state', () => {
+  it('进程重启后 qr_ready 但 token 有效 → getView 归一化为 online', () => {
+    const rt = setup();
+    rt.store.run(
+      `INSERT INTO sessions(account_id,state,mode,access_token_enc,individual_token_enc,qr_payload,token_expire_at,updated_at)
+       VALUES(?,?,?,?,?,?,?,?)`,
+      'acct_01', 'qr_ready', 'dingtalk_sso_qr', rt.box.encrypt('AT'), rt.box.encrypt('IAT'), 'https://x', Date.now() + 3600_000, new Date().toISOString()
+    );
+    const view = rt.sessions.getView('acct_01');
+    expect(view.state).toBe('online');
+    expect(view.qr).toBeNull();
+    rt.close();
+  });
+});

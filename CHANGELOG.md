@@ -1,3 +1,13 @@
+## [1.1.0] - 2026-11-16
+
+### 保活修复与实测
+
+- 实测：token 名义 24h 到期后上游仍接受（跨 31h、含 8h43m 停机，重启后心跳成功；真实业务调用正常）。
+- 心跳成功且本地有效期临近/过期时按活动续期刷新 token_expire_at（keepalive.tokenTtlHours=24），避免 needsRelogin 误触发扫码重登。
+- 进程重启后陈旧 qr_ready/starting（无活跃 loginTask 且有 token）归一化为 online；session cancel 无 busy 时清理 QR 并恢复 online/idle。
+- 新增 keepalive 续期/stale state 单测；测试 17 文件 / 67 用例。
+- 文档：docs/06 24h 实验结论、docs/10 §12、README 状态更新。
+
 ## [1.0.9] - 2026-11-15
 
 ### 新增
